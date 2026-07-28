@@ -18,14 +18,24 @@ type AdminPost = {
   created_at: string;
 };
 
-const emptyPost = { title: "", slug: "", excerpt: "", content: "", category: "Ghi chép", cover_url: "", status: "draft" as const };
+type PostForm = {
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  category: string;
+  cover_url: string;
+  status: AdminPost["status"];
+};
+
+const emptyPost: PostForm = { title: "", slug: "", excerpt: "", content: "", category: "Ghi chép", cover_url: "", status: "draft" };
 
 export function AdminDashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [authorized, setAuthorized] = useState<boolean | null>(null);
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [editing, setEditing] = useState<AdminPost | null>(null);
-  const [form, setForm] = useState(emptyPost);
+  const [form, setForm] = useState<PostForm>(emptyPost);
   const [formOpen, setFormOpen] = useState(false);
   const [message, setMessage] = useState("");
 
