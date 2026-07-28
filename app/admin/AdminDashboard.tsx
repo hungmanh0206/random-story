@@ -87,11 +87,11 @@ export function AdminDashboard() {
   };
 
   if (authorized === null) return <main className="admin-access"><p>Đang kiểm tra quyền quản trị…</p></main>;
-  if (!authorized) return <main className="admin-access"><img src="/logo-wordmark.svg" alt="random story." /><h1>Không có quyền truy cập</h1><p>Hãy đăng nhập bằng tài khoản quản trị.</p><Link className="primary-btn" href="/">Về trang chủ</Link></main>;
+  if (!authorized) return <main className="admin-access"><img src="/logo-original-font.png" alt="random story." /><h1>Không có quyền truy cập</h1><p>Hãy đăng nhập bằng tài khoản quản trị.</p><Link className="primary-btn" href="/">Về trang chủ</Link></main>;
 
   return (
     <div className="admin-shell">
-      <aside><Link className="brand admin-brand" href="/"><img src="/logo-wordmark.svg" alt="random story." /></Link><p>Trang quản trị</p><nav><button className="active">Bài viết</button></nav><Link className="admin-exit" href="/">← Xem trang blog</Link></aside>
+      <aside><Link className="brand admin-brand" href="/"><img src="/logo-original-font.png" alt="random story." /></Link><p>Trang quản trị</p><nav><button className="active">Bài viết</button></nav><Link className="admin-exit" href="/">← Xem trang blog</Link></aside>
       <section className="admin-main">
         <header><div><span className="eyebrow">Random Story CMS</span><h1>Quản lý bài viết</h1></div><button className="primary-btn" onClick={openCreate}>+ Bài viết mới</button></header>
         {message && <p className="auth-message">{message}</p>}
