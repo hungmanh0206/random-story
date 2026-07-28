@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { createSupabaseBrowserClient } from "../lib/supabase";
 
 type Post = {
   id: number;
@@ -88,6 +89,16 @@ export function BlogExperience() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [liked, setLiked] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null));
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserEmail(session?.user.email ?? null);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
 
   const filtered = useMemo(() => {
     const value = query.trim().toLowerCase();
@@ -113,7 +124,7 @@ export function BlogExperience() {
       <ArticleView
         post={active}
         liked={liked}
-        onLike={() => setLoginOpen(true)}
+        onLike={() => userEmail ? setLiked(!liked) : setLoginOpen(true)}
         onBack={() => setActive(null)}
         onRelated={openPost}
         loginOpen={loginOpen}
@@ -137,7 +148,7 @@ export function BlogExperience() {
             <span>⌕</span>
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết" />
           </label>
-          <button className="login-btn" onClick={() => setLoginOpen(true)}>Đăng nhập</button>
+          <button className="login-btn" onClick={() => setLoginOpen(true)}>{userEmail ? userEmail.split("@")[0] : "Đăng nhập"}</button>
           <button className="menu-btn" onClick={() => setMenuOpen(!menuOpen)} aria-label="Mở menu">☰</button>
         </div>
       </header>
@@ -192,7 +203,7 @@ export function BlogExperience() {
 
       <Newsletter />
       <Footer onAdmin={() => setAdminOpen(true)} />
-      {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+      {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} onSuccess={setUserEmail} />}
     </main>
   );
 }
@@ -257,26 +268,68 @@ function ArticleView({ post, onBack, onLike, onRelated, liked, loginOpen, setLog
         <div className="post-grid">{related.map((item, index) => <PostCard key={item.id} post={item} index={index} onOpen={() => onRelated(item)} />)}</div>
       </section>
       <Footer onAdmin={() => {}} />
-      {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+      {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} onSuccess={() => setLoginOpen(false)} />}
     </main>
   );
 }
 
-function LoginModal({ onClose }: { onClose: () => void }) {
+function LoginModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (email: string) => void }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    setMessage("");
+
+    const supabase = createSupabaseBrowserClient();
+    const result = mode === "login"
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({ email, password });
+
+    setLoading(false);
+    if (result.error) {
+      setMessage(result.error.message);
+      return;
+    }
+    if (result.data.user && !result.data.session) {
+      setMessage("Hãy kiểm tra email để xác nhận tài khoản.");
+      return;
+    }
+
+    onSuccess(result.data.user?.email ?? email);
+    onClose();
+  };
+
+  const loginWithGoogle = async () => {
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) setMessage(error.message);
+  };
+
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <div className="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-title" onMouseDown={(e) => e.stopPropagation()}>
         <button className="close-btn" onClick={onClose} aria-label="Đóng">×</button>
         <img className="modal-logo" src="/logo.jpg" alt="random story." />
-        <span className="eyebrow">Chào mừng trở lại</span>
-        <h2 id="login-title">Đăng nhập Random Story</h2>
+        <span className="eyebrow">{mode === "login" ? "Chào mừng trở lại" : "Bắt đầu câu chuyện"}</span>
+        <h2 id="login-title">{mode === "login" ? "Đăng nhập" : "Tạo tài khoản"} Random Story</h2>
         <p>Để lưu bài yêu thích và cùng trò chuyện.</p>
-        <label>Email<input type="email" placeholder="ban@example.com" /></label>
-        <label>Mật khẩu<input type="password" placeholder="••••••••" /></label>
-        <button className="primary-btn" onClick={onClose}>Tiếp tục</button>
+        <form onSubmit={submit}>
+          <label>Email<input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="ban@example.com" /></label>
+          <label>Mật khẩu<input type="password" required minLength={6} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••••" /></label>
+          {message && <p className="auth-message" role="status">{message}</p>}
+          <button className="primary-btn" type="submit" disabled={loading}>{loading ? "Đang xử lý..." : "Tiếp tục"}</button>
+        </form>
         <div className="modal-divider"><span>hoặc</span></div>
-        <button className="google-btn" onClick={onClose}>G&nbsp;&nbsp; Tiếp tục với Google</button>
-        <small>Chưa có tài khoản? <button>Đăng ký miễn phí</button></small>
+        <button className="google-btn" onClick={loginWithGoogle}>G&nbsp;&nbsp; Tiếp tục với Google</button>
+        <small>{mode === "login" ? "Chưa có tài khoản?" : "Đã có tài khoản?"} <button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setMessage(""); }}>{mode === "login" ? "Đăng ký miễn phí" : "Đăng nhập"}</button></small>
       </div>
     </div>
   );
