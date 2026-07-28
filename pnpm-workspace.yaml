@@ -3,5 +3,3 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   workerd: true
-dangerouslyAllowAllBuilds: true
-confirmModulesPurge: false
