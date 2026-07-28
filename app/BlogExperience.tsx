@@ -318,13 +318,14 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
         <div className="article-intro"><span className="eyebrow">{post.category}</span><h1>{post.title}</h1><p>{post.excerpt}</p><div className="author-row"><div className="avatar">HM</div><div><strong>Hùng Mạnh</strong><span>{post.date} · {post.read}</span></div></div></div>
         <img className="article-cover" src={post.image} alt="" />
         <div className="article-body">
-          {post.content.split(/\n\n+/).map((paragraph, index) => paragraph.startsWith("## ") ? <h2 key={index}>{paragraph.slice(3)}</h2> : <p className={index === 0 ? "lead" : ""} key={index}>{paragraph}</p>)}
+          {/<[a-z][\s\S]*>/i.test(post.content)
+            ? <div className="rich-article-content" dangerouslySetInnerHTML={{ __html: post.content }} />
+            : post.content.split(/\n\n+/).map((paragraph, index) => paragraph.startsWith("## ") ? <h2 key={index}>{paragraph.slice(3)}</h2> : <p className={index === 0 ? "lead" : ""} key={index}>{paragraph}</p>)}
           {user && isDatabasePost && (
             <>
               <div className="article-actions"><button className={liked ? "liked" : ""} onClick={toggleLike}>{liked ? "♥" : "♡"} {reactionCount} lượt thích</button><button onClick={() => navigator.clipboard?.writeText(window.location.href)}>↗ Chia sẻ</button></div>
               <section className="comments">
-                <span className="eyebrow">Trò chuyện</span><h2>Để lại một suy nghĩ</h2>
-                <form className="comment-form" onSubmit={addComment}><textarea required maxLength={2000} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={`Chia sẻ suy nghĩ của bạn, ${profile?.full_name || "bạn"}...`} /><button className="primary-btn">Gửi bình luận</button></form>
+                <form className="comment-form" onSubmit={addComment}><input required maxLength={500} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={`Viết bình luận, ${profile?.full_name || "bạn"}...`} /><button className="primary-btn">Gửi</button></form>
                 <div className="comment-list">{comments.map((item) => <article key={item.id}><strong>{item.profiles?.full_name || "Độc giả"}</strong><time>{new Date(item.created_at).toLocaleDateString("vi-VN")}</time><p>{item.content}</p></article>)}</div>
               </section>
             </>

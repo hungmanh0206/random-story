@@ -16,10 +16,12 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",
+    "@tinymce/tinymce-react": "^6.3.0",
     "drizzle-orm": "0.45.2",
     "next": "16.2.6",
     "react": "19.2.6",
-    "react-dom": "19.2.6"
+    "react-dom": "19.2.6",
+    "tinymce": "^8.8.2"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",
