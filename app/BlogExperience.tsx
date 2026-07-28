@@ -136,12 +136,15 @@ export function BlogExperience() {
     });
   }, [category, posts, query]);
 
-  const accountButton = (
-    <AccountButton
-      user={user}
-      profile={profile}
-      onClick={() => user ? setProfileOpen(true) : setLoginOpen(true)}
-    />
+  const accountControl = (
+    <div className="account-menu-wrap">
+      <AccountButton
+        user={user}
+        profile={profile}
+        onClick={() => user ? setProfileOpen((open) => !open) : setLoginOpen(true)}
+      />
+      {profileOpen && user && <ProfileMenu user={user} profile={profile} onClose={() => setProfileOpen(false)} />}
+    </div>
   );
 
   if (active) {
@@ -152,12 +155,11 @@ export function BlogExperience() {
           posts={posts}
           user={user}
           profile={profile}
-          accountButton={accountButton}
+          accountButton={accountControl}
           onBack={() => setActive(null)}
           onRelated={setActive}
         />
         {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
-        {profileOpen && user && <ProfileModal user={user} profile={profile} onClose={() => setProfileOpen(false)} />}
       </>
     );
   }
@@ -166,7 +168,7 @@ export function BlogExperience() {
   return (
     <main>
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="Random Story"><img src="/logo-purple-transparent.png" alt="random story." /></a>
+        <a className="brand" href="#top" aria-label="Random Story"><img src="/logo-wordmark.svg" alt="random story." /></a>
         <nav className={menuOpen ? "nav open" : "nav"} aria-label="Điều hướng chính">
           <a href="#stories">Bài viết</a>
           <a href="#topics">Chủ đề</a>
@@ -174,7 +176,7 @@ export function BlogExperience() {
         </nav>
         <div className="header-actions">
           <label className="search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết" /></label>
-          {accountButton}
+          {accountControl}
           <button className="menu-btn" onClick={() => setMenuOpen(!menuOpen)} aria-label="Mở menu">☰</button>
         </div>
       </header>
@@ -213,7 +215,6 @@ export function BlogExperience() {
       <Newsletter />
       <Footer />
       {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
-      {profileOpen && user && <ProfileModal user={user} profile={profile} onClose={() => setProfileOpen(false)} />}
     </main>
   );
 }
@@ -230,23 +231,19 @@ function AccountButton({ user, profile, onClick }: { user: User | null; profile:
   );
 }
 
-function ProfileModal({ user, profile, onClose }: { user: User; profile: Profile | null; onClose: () => void }) {
+function ProfileMenu({ user, profile, onClose }: { user: User; profile: Profile | null; onClose: () => void }) {
   const name = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Bạn";
   const signOut = async () => {
     await createSupabaseBrowserClient().auth.signOut();
     onClose();
   };
   return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
-      <section className="profile-modal" role="dialog" aria-modal="true" aria-label="Hồ sơ" onMouseDown={(e) => e.stopPropagation()}>
-        <button className="close-btn" onClick={onClose} aria-label="Đóng">×</button>
+      <section className="profile-menu" role="dialog" aria-label="Hồ sơ">
         <div className="profile-avatar">{profile?.avatar_url ? <img src={profile.avatar_url} alt="" /> : name.charAt(0).toUpperCase()}</div>
-        <h2>{name}</h2>
-        <p>{user.email}</p>
-        {profile?.role === "admin" && <a className="primary-btn profile-admin-link" href="/admin">Quản trị</a>}
-        <button className="google-btn" onClick={signOut}>Đăng xuất</button>
+        <div className="profile-menu-copy"><strong>{name}</strong><small>{user.email}</small></div>
+        {profile?.role === "admin" && <a className="profile-menu-link" href="/admin">Quản trị</a>}
+        <button className="profile-menu-link danger-link" onClick={signOut}>Đăng xuất</button>
       </section>
-    </div>
   );
 }
 
@@ -313,7 +310,7 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
   return (
     <main className="article-page">
       <header className="article-header">
-        <button className="brand" onClick={onBack}><img src="/logo-purple-transparent.png" alt="random story." /></button>
+        <button className="brand" onClick={onBack}><img src="/logo-wordmark.svg" alt="random story." /></button>
         <button className="back-btn" onClick={onBack}>← Trở về trang chủ</button>
         {accountButton}
       </header>
@@ -371,11 +368,9 @@ function LoginModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
-      <div className="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-title" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="login-modal" role="dialog" aria-modal="true" aria-label={mode === "login" ? "Đăng nhập Random Story" : "Tạo tài khoản Random Story"} onMouseDown={(e) => e.stopPropagation()}>
         <button className="close-btn" onClick={onClose} aria-label="Đóng">×</button>
-        <img className="modal-logo" src="/logo-purple-transparent.png" alt="random story." />
-        <span className="eyebrow">{mode === "login" ? "Chào mừng trở lại" : "Bắt đầu câu chuyện"}</span>
-        <h2 id="login-title">{mode === "login" ? "Đăng nhập" : "Tạo tài khoản"} Random Story</h2>
+        <img className="modal-logo" src="/logo-wordmark.svg" alt="random story." />
         <form onSubmit={submit}>
           {mode === "signup" && <label>Họ và tên<input required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Tên của bạn" /></label>}
           <label>Email<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ban@example.com" /></label>
@@ -403,5 +398,5 @@ function Newsletter() {
 }
 
 function Footer() {
-  return <footer><a className="brand footer-brand" href="#top"><img src="/logo-purple-transparent.png" alt="random story." /></a><p>Ghi lại điều đáng nhớ.<br />Chia sẻ điều đáng nghĩ.</p><div><a href="#stories">Bài viết</a><a href="#topics">Chủ đề</a><a href="#about">Về chúng tôi</a></div><div><a href="#">Instagram</a><a href="#">Threads</a><a href="mailto:hello@randomstory.vn">Email</a></div><small>© 2026 Random Story</small></footer>;
+  return <footer><a className="brand footer-brand" href="#top"><img src="/logo-wordmark.svg" alt="random story." /></a><p>Ghi lại điều đáng nhớ.<br />Chia sẻ điều đáng nghĩ.</p><div><a href="#stories">Bài viết</a><a href="#topics">Chủ đề</a><a href="#about">Về chúng tôi</a></div><div><a href="#">Instagram</a><a href="#">Threads</a><a href="mailto:hello@randomstory.vn">Email</a></div><small>© 2026 Random Story</small></footer>;
 }
