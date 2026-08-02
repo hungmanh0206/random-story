@@ -101,6 +101,7 @@ export function BlogExperience() {
   const [category, setCategory] = useState("Tất cả");
   const [categories, setCategories] = useState(fallbackCategories);
   const [query, setQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [posts, setPosts] = useState<Post[]>(fallbackPosts);
   const [active, setActive] = useState<Post | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -168,6 +169,20 @@ export function BlogExperience() {
       return matchesCategory && (!value || `${post.title} ${post.excerpt} ${post.category}`.toLowerCase().includes(value));
     });
   }, [category, posts, query]);
+
+  const postsPerPage = 6;
+  const pageCount = Math.max(1, Math.ceil(filtered.length / postsPerPage));
+  const visiblePosts = filtered.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
+
+  useEffect(() => setCurrentPage(1), [category, query]);
+  useEffect(() => {
+    if (currentPage > pageCount) setCurrentPage(pageCount);
+  }, [currentPage, pageCount]);
+
+  const changePage = (page: number) => {
+    setCurrentPage(page);
+    document.getElementById("stories")?.scrollIntoView({ behavior: "smooth" });
+  };
 
   const accountControl = (
     <div className="account-menu-wrap">
@@ -239,7 +254,13 @@ export function BlogExperience() {
         <div id="topics" className="filter-row" role="group" aria-label="Lọc theo chủ đề">
           {categories.map((item) => <button key={item} className={category === item ? "filter active" : "filter"} onClick={() => setCategory(item)}>{item}</button>)}
         </div>
-        {filtered.length ? <div className="post-grid">{filtered.map((post, index) => <PostCard key={post.id} post={post} index={index} onOpen={() => openPost(post)} />)}</div> : (
+        {filtered.length ? <><div className="post-grid">{visiblePosts.map((post, index) => <PostCard key={post.id} post={post} index={(currentPage - 1) * postsPerPage + index} onOpen={() => openPost(post)} />)}</div>
+          {pageCount > 1 && <nav className="pagination" aria-label="Phân trang bài viết">
+            <button onClick={() => changePage(currentPage - 1)} disabled={currentPage === 1}>← Trước</button>
+            <div>{Array.from({ length: pageCount }, (_, index) => index + 1).map((page) => <button key={page} className={currentPage === page ? "active" : ""} aria-current={currentPage === page ? "page" : undefined} onClick={() => changePage(page)}>{page}</button>)}</div>
+            <button onClick={() => changePage(currentPage + 1)} disabled={currentPage === pageCount}>Sau →</button>
+          </nav>}
+        </> : (
           <div className="empty-state"><span>⌕</span><h3>Chưa tìm thấy câu chuyện phù hợp</h3><p>Thử một từ khóa hoặc chủ đề khác nhé.</p></div>
         )}
       </section>
