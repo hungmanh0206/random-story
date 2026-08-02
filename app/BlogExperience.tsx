@@ -448,7 +448,7 @@ function LoginModal({ onClose }: { onClose: () => void }) {
           <button className="primary-btn" type="submit" disabled={loading}>{loading ? "Đang xử lý..." : "Tiếp tục"}</button>
         </form>
         <div className="modal-divider"><span>hoặc</span></div>
-        <button className="google-btn" onClick={loginWithGoogle} disabled={loading}>G&nbsp;&nbsp; {loading ? "Đang chuyển hướng..." : "Tiếp tục với Google"}</button>
+        <button className="google-btn" onClick={loginWithGoogle} disabled={loading}><span className="google-mark">G</span><span>{loading ? "Đang chuyển hướng..." : "Tiếp tục với Google"}</span></button>
         <small>{mode === "login" ? "Chưa có tài khoản?" : "Đã có tài khoản?"} <button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setMessage(""); }}>{mode === "login" ? "Đăng ký miễn phí" : "Đăng nhập"}</button></small>
       </div>
     </div>
