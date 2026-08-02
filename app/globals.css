@@ -56,3 +56,40 @@
   .modal-backdrop{padding:18px;place-items:center}.login-modal{align-self:auto;width:min(370px,100%);max-height:calc(100dvh - 36px);overflow-y:auto;padding:26px 22px;border-radius:20px}.login-modal .modal-logo{width:150px;height:82px;margin-bottom:10px}.login-modal label{margin-top:11px}.login-modal label input{padding:10px 0}.login-modal .primary-btn{margin-top:18px}.modal-divider{margin:15px 0}.login-modal small{margin-top:14px}
   .admin-shell{display:block}.admin-shell aside{position:static;height:auto}.admin-main{padding:24px}.admin-main>header{gap:15px}.table-card{overflow:auto}
 }
+
+/* Responsive admin dashboard */
+@media(max-width:900px){
+  .admin-shell{display:block;min-width:0}
+  .admin-shell aside{position:sticky;top:0;z-index:45;width:100%;height:auto;padding:10px 16px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;background:rgba(45,29,50,.97);backdrop-filter:blur(16px);box-shadow:0 8px 28px rgba(31,19,35,.18)}
+  .admin-shell aside>p{display:none}
+  .admin-brand{font-size:0}.admin-brand img{width:88px;height:48px;margin:0;object-fit:contain;object-position:left center;filter:brightness(0) invert(1)}
+  .admin-shell aside nav{display:flex;flex-direction:row;justify-content:center;gap:6px}
+  .admin-shell aside nav button{font-size:11px!important;color:#d8ccdc;padding:9px 14px;border-radius:999px;white-space:nowrap}
+  .admin-shell aside nav button:before{content:none!important}
+  .admin-shell aside nav button.active,.admin-shell aside nav button:hover{background:#68466f;color:#fff}
+  .admin-exit{margin:0;padding:9px 12px;border:1px solid rgba(255,255,255,.18);border-radius:999px;font-size:10px!important;color:#eee3f0;white-space:nowrap;text-align:center}
+  .admin-main{padding:28px 20px;overflow:visible}
+  .admin-main>header{margin-bottom:24px;gap:16px;align-items:center}
+  .admin-main h1{font-size:clamp(30px,6vw,42px)}
+  .stat-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .stat-grid>div{padding:16px;border-radius:14px}.stat-grid strong{font-size:30px;margin:8px 0}
+  .admin-card{padding:18px;border-radius:16px}.admin-data-block{margin-top:16px}
+  .table-card{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.table-card table{min-width:720px}.table-card th,.table-card td{padding:13px 11px}
+  .post-editor{width:calc(100vw - 24px);max-height:calc(100dvh - 24px);padding:26px 22px;border-radius:20px}
+  .category-editor{width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow:auto;padding:28px 22px;border-radius:20px}
+}
+
+@media(max-width:620px){
+  .admin-shell aside{grid-template-columns:1fr auto;grid-template-areas:"brand exit" "tabs tabs";gap:8px 12px;padding:8px 12px}
+  .admin-brand{grid-area:brand}.admin-exit{grid-area:exit}.admin-shell aside nav{grid-area:tabs;display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .admin-shell aside nav button{width:100%;padding:9px 12px;text-align:center}
+  .admin-exit{font-size:9px!important;padding:8px 10px}.admin-brand img{width:78px;height:42px}
+  .admin-main{padding:22px 14px 36px}.admin-main>header{align-items:flex-end}.admin-main>header>div{min-width:0}.admin-main h1{font-size:29px;line-height:1.12}
+  .admin-main>header .primary-btn{font-size:10px!important;padding:10px 13px;white-space:nowrap}.admin-main>header .primary-btn:after{content:none!important}
+  .stat-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.stat-grid>div{padding:12px 9px}.stat-grid span{font-size:8px}.stat-grid strong{font-size:24px}.stat-grid small{font-size:8px;line-height:1.35}
+  .admin-card{padding:14px}.card-title{margin-bottom:14px}.card-title h2{font-size:20px}.table-card table{min-width:650px}
+  .admin-actions{gap:5px}.admin-actions button{padding:6px 9px}
+  .admin-shell>.modal-backdrop{padding:6px;place-items:center}.post-editor{width:calc(100vw - 12px);max-height:calc(100dvh - 12px);padding:22px 16px;border-radius:16px}.post-editor h2{font-size:27px;margin-bottom:18px}
+  .category-editor{width:calc(100vw - 12px);max-height:calc(100dvh - 12px);padding:24px 17px;border-radius:16px}.category-editor h2{font-size:26px}
+  .tinymce-wrap,.tox-tinymce{max-width:100%}.post-editor .primary-btn,.category-editor .primary-btn{width:100%;justify-self:stretch}
+}
