@@ -208,7 +208,7 @@ export function AdminDashboard() {
 
   return (
     <div className="admin-shell">
-      <aside><Link className="brand admin-brand" href="/"><img src="/logo-original-font.png" alt="random story." /></Link><p>Trang quản trị</p><nav><button className={activeTab === "posts" ? "active" : ""} onClick={() => setActiveTab("posts")}>Bài viết</button><button className={activeTab === "categories" ? "active" : ""} onClick={() => setActiveTab("categories")}>Chủ đề</button></nav><Link className="admin-exit" href="/">← Xem trang blog</Link></aside>
+      <aside><Link className="brand admin-brand" href="/"><picture><source media="(max-width: 620px)" srcSet="/icon.jpg" /><img src="/logo-original-font.png" alt="random story." /></picture></Link><p>Trang quản trị</p><nav><button className={activeTab === "posts" ? "active" : ""} onClick={() => setActiveTab("posts")}>Bài viết</button><button className={activeTab === "categories" ? "active" : ""} onClick={() => setActiveTab("categories")}>Chủ đề</button></nav><Link className="admin-exit" href="/">← Xem trang blog</Link></aside>
       <section className="admin-main">
         <header><div><span className="eyebrow">Random Story CMS</span><h1>{activeTab === "posts" ? "Quản lý bài viết" : "Quản lý chủ đề"}</h1></div><button className="primary-btn" onClick={activeTab === "posts" ? openCreate : openCategoryCreate}>+ {activeTab === "posts" ? "Bài viết mới" : "Chủ đề mới"}</button></header>
         {message && <p className="auth-message">{message}</p>}
