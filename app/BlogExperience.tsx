@@ -266,7 +266,7 @@ export function BlogExperience() {
       </section>
 
       <section id="about" className="about-section">
-        <div className="about-mark">n</div>
+        <img className="about-mark" src="/icon.jpg" alt="Random Story" />
         <div><span className="eyebrow light">Về Random Story</span><h2>Thế giới rộng lớn.<br />Câu chuyện thì vô tận.</h2></div>
         <div className="about-copy"><p>Random Story kể lại lịch sử, giải thích khoa học và khám phá những chủ đề gần gũi bằng ngôn ngữ dễ hiểu. Chúng tôi tin rằng kiến thức trở nên đáng nhớ nhất khi được kể thành một câu chuyện hay.</p></div>
       </section>
