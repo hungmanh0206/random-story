@@ -4,10 +4,9 @@ import { FormEvent, useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import { onAuthStateChanged } from "firebase/auth";
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, updateDoc } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { firebaseAuth, firebaseStorage, firestore } from "../../lib/firebase";
+import { firebaseAuth, firestore } from "../../lib/firebase";
 
 const TinyEditor = dynamic(() => import("./TinyEditor").then((module) => module.TinyEditor), {
   ssr: false,
@@ -70,7 +69,6 @@ export function AdminDashboard() {
   const [categoryForm, setCategoryForm] = useState(emptyCategory);
   const [categoryFormOpen, setCategoryFormOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const [uploadingCover, setUploadingCover] = useState(false);
 
   const loadPosts = async () => {
     try {
@@ -120,31 +118,6 @@ export function AdminDashboard() {
       name,
       slug: !current.slug || current.slug === createSlug(current.name) ? createSlug(name) : current.slug,
     }));
-  };
-
-  const uploadCover = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      setMessage("Vui lòng chọn một tệp hình ảnh.");
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setMessage("Ảnh bìa không được lớn hơn 10 MB.");
-      return;
-    }
-
-    setUploadingCover(true);
-    setMessage("");
-    try {
-      const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-      const storageRef = ref(firebaseStorage, `post-covers/${Date.now()}-${crypto.randomUUID()}.${extension}`);
-      await uploadBytes(storageRef, file, { contentType: file.type });
-      const coverUrl = await getDownloadURL(storageRef);
-      setForm((current) => ({ ...current, cover_url: coverUrl }));
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Không thể tải ảnh bìa lên.");
-    } finally {
-      setUploadingCover(false);
-    }
   };
 
   const save = async (event: FormEvent) => {
@@ -233,16 +206,9 @@ export function AdminDashboard() {
         <div className="editor-grid"><label>Slug<input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="Tự tạo từ tiêu đề" /></label><label>Chủ đề<select required value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{categories.map((category) => <option key={category.id} value={category.name}>{category.name}</option>)}</select></label></div>
         <label>Tóm tắt<textarea required value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} /></label>
         <label>Nội dung<div className="tinymce-wrap"><TinyEditor value={form.content} onChange={(content) => setForm({ ...form, content })} /></div></label>
-        <label>Ảnh bìa
-          <span className="cover-upload-row">
-            <input type="file" accept="image/*" disabled={uploadingCover} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadCover(file); event.target.value = ""; }} />
-            <small>{uploadingCover ? "Đang tải ảnh lên…" : "JPG, PNG, WebP hoặc GIF · tối đa 10 MB"}</small>
-          </span>
-          <input type="url" value={form.cover_url} onChange={(e) => setForm({ ...form, cover_url: e.target.value })} placeholder="Hoặc nhập URL ảnh" />
-          {form.cover_url && <img className="cover-preview" src={form.cover_url} alt="Xem trước ảnh bìa" />}
-        </label>
+        <label>URL ảnh bìa<input type="url" value={form.cover_url} onChange={(e) => setForm({ ...form, cover_url: e.target.value })} placeholder="https://images.example.com/anh-bia.jpg" /></label>
         <label>Trạng thái<select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as typeof form.status })}><option value="draft">Bản nháp</option><option value="published">Xuất bản</option><option value="archived">Lưu trữ</option></select></label>
-        {message && <p className="auth-message">{message}</p>}<button className="primary-btn" disabled={uploadingCover}>{editing ? "Lưu thay đổi" : "Tạo bài viết"}</button>
+        {message && <p className="auth-message">{message}</p>}<button className="primary-btn">{editing ? "Lưu thay đổi" : "Tạo bài viết"}</button>
       </form></section></div>}
       {categoryFormOpen && <div className="modal-backdrop" onMouseDown={() => setCategoryFormOpen(false)}><section className="category-editor" onMouseDown={(e) => e.stopPropagation()}><button className="close-btn" onClick={() => setCategoryFormOpen(false)}>×</button><h2>{editingCategory ? "Sửa chủ đề" : "Chủ đề mới"}</h2><form onSubmit={saveCategory}>
         <label>Tên chủ đề<input required value={categoryForm.name} onChange={(e) => changeCategoryName(e.target.value)} /></label>

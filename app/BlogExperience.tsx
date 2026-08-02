@@ -8,6 +8,7 @@ import { firebaseAuth, firestore } from "../lib/firebase";
 
 export type Post = {
   id: string;
+  slug: string;
   category: string;
   title: string;
   excerpt: string;
@@ -37,6 +38,7 @@ type Comment = {
 const fallbackPosts: Post[] = [
   {
     id: "local-1",
+    slug: "hoc-cach-o-yen-giua-mot-the-gioi-luon-voi",
     category: "Sống chậm",
     title: "Học cách ở yên giữa một thế giới luôn vội",
     excerpt: "Đôi khi, tiến về phía trước bắt đầu bằng việc cho mình được dừng lại và lắng nghe.",
@@ -49,6 +51,7 @@ const fallbackPosts: Post[] = [
   },
   {
     id: "local-2",
+    slug: "ai-khong-lay-di-su-sang-tao",
     category: "Công nghệ",
     title: "AI không lấy đi sự sáng tạo — nó đổi cách ta bắt đầu",
     excerpt: "Một góc nhìn bình tĩnh hơn về công cụ, ý tưởng và phần việc vẫn thuộc về con người.",
@@ -60,6 +63,7 @@ const fallbackPosts: Post[] = [
   },
   {
     id: "local-3",
+    slug: "5-cuon-sach-cho-mot-khoang-tho",
     category: "Sách",
     title: "5 cuốn sách để đọc trong những ngày cần một khoảng thở",
     excerpt: "Những trang viết dịu dàng, không hứa giải quyết tất cả nhưng biết cách ngồi cạnh bạn.",
@@ -81,6 +85,7 @@ function mapPost(row: Record<string, unknown>): Post {
   const content = String(row.content ?? "");
   return {
     id: String(row.id),
+    slug: String(row.slug ?? row.id),
     category: String(row.category ?? "Ghi chép"),
     title: String(row.title),
     excerpt: String(row.excerpt ?? ""),
@@ -128,6 +133,28 @@ export function BlogExperience() {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    const syncPostFromUrl = () => {
+      const slug = new URLSearchParams(window.location.search).get("post");
+      setActive(slug ? posts.find((post) => post.slug === slug) ?? null : null);
+    };
+    syncPostFromUrl();
+    window.addEventListener("popstate", syncPostFromUrl);
+    return () => window.removeEventListener("popstate", syncPostFromUrl);
+  }, [posts]);
+
+  const openPost = (post: Post) => {
+    setActive(post);
+    window.history.pushState({}, "", `/?post=${encodeURIComponent(post.slug)}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const closePost = () => {
+    setActive(null);
+    window.history.pushState({}, "", "/");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const filtered = useMemo(() => {
     const value = query.trim().toLowerCase();
     return posts.filter((post) => {
@@ -156,8 +183,8 @@ export function BlogExperience() {
           user={user}
           profile={profile}
           accountButton={accountControl}
-          onBack={() => setActive(null)}
-          onRelated={setActive}
+          onBack={closePost}
+          onRelated={openPost}
         />
         {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
       </>
@@ -188,7 +215,7 @@ export function BlogExperience() {
           <span className="eyebrow light">Bài viết nổi bật · {featured.category}</span>
           <h1>{featured.title}</h1>
           <p>{featured.excerpt}</p>
-          <button className="text-link light-link" onClick={() => setActive(featured)}>Đọc câu chuyện <span>↗</span></button>
+          <button className="text-link light-link" onClick={() => openPost(featured)}>Đọc câu chuyện <span>↗</span></button>
         </div>
         <p className="hero-note">Một blog về những điều đáng để chậm lại.</p>
       </section>
@@ -201,7 +228,7 @@ export function BlogExperience() {
         <div id="topics" className="filter-row" role="group" aria-label="Lọc theo chủ đề">
           {categories.map((item) => <button key={item} className={category === item ? "filter active" : "filter"} onClick={() => setCategory(item)}>{item}</button>)}
         </div>
-        {filtered.length ? <div className="post-grid">{filtered.map((post, index) => <PostCard key={post.id} post={post} index={index} onOpen={() => setActive(post)} />)}</div> : (
+        {filtered.length ? <div className="post-grid">{filtered.map((post, index) => <PostCard key={post.id} post={post} index={index} onOpen={() => openPost(post)} />)}</div> : (
           <div className="empty-state"><span>⌕</span><h3>Chưa tìm thấy câu chuyện phù hợp</h3><p>Thử một từ khóa hoặc chủ đề khác nhé.</p></div>
         )}
       </section>
