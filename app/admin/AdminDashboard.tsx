@@ -204,12 +204,12 @@ export function AdminDashboard() {
         <div className="admin-card table-card admin-data-block">
           <div className="card-title"><h2>Tất cả bài viết</h2></div>
           <table><thead><tr><th>Tiêu đề</th><th>Chủ đề</th><th>Trạng thái</th><th>Cập nhật</th><th>Thao tác</th></tr></thead><tbody>
-            {posts.map((post) => <tr key={post.id}><td><strong>{post.title}</strong><small className="admin-slug">/{post.slug}</small></td><td>{post.category}</td><td><span className="status">{post.status === "published" ? "Đã xuất bản" : post.status === "draft" ? "Bản nháp" : "Lưu trữ"}</span></td><td>{new Date(post.created_at).toLocaleDateString("vi-VN")}</td><td><div className="admin-actions"><button onClick={() => openEdit(post)}>Sửa</button><button className="danger-btn" onClick={() => remove(post)}>Xóa</button></div></td></tr>)}
+            {posts.map((post) => <tr key={post.id}><td data-label="Tiêu đề"><strong>{post.title}</strong><small className="admin-slug">/{post.slug}</small></td><td data-label="Chủ đề">{post.category}</td><td data-label="Trạng thái"><span className="status">{post.status === "published" ? "Đã xuất bản" : post.status === "draft" ? "Bản nháp" : "Lưu trữ"}</span></td><td data-label="Cập nhật">{new Date(post.created_at).toLocaleDateString("vi-VN")}</td><td data-label="Thao tác"><div className="admin-actions"><button onClick={() => openEdit(post)}>Sửa</button><button className="danger-btn" onClick={() => remove(post)}>Xóa</button></div></td></tr>)}
           </tbody></table>
         </div></> : <div className="admin-card table-card admin-data-block">
           <div className="card-title"><h2>Tất cả chủ đề</h2><span>{categories.length} chủ đề</span></div>
           <table><thead><tr><th>Tên chủ đề</th><th>Slug</th><th>Mô tả</th><th>Thao tác</th></tr></thead><tbody>
-            {categories.map((category) => <tr key={category.id}><td><strong>{category.name}</strong></td><td>/{category.slug}</td><td>{category.description || "—"}</td><td><div className="admin-actions"><button onClick={() => openCategoryEdit(category)}>Sửa</button><button className="danger-btn" onClick={() => removeCategory(category)}>Xóa</button></div></td></tr>)}
+            {categories.map((category) => <tr key={category.id}><td data-label="Tên chủ đề"><strong>{category.name}</strong></td><td data-label="Slug">/{category.slug}</td><td data-label="Mô tả">{category.description || "—"}</td><td data-label="Thao tác"><div className="admin-actions"><button onClick={() => openCategoryEdit(category)}>Sửa</button><button className="danger-btn" onClick={() => removeCategory(category)}>Xóa</button></div></td></tr>)}
           </tbody></table>
         </div>}
       </section>
