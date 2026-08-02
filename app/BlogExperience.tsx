@@ -193,6 +193,7 @@ export function BlogExperience() {
         profile={profile}
         onClick={() => user ? setProfileOpen((open) => !open) : setLoginOpen(true)}
       />
+      {profileOpen && <button className="profile-dismiss" onClick={() => setProfileOpen(false)} aria-label="Đóng menu hồ sơ" />}
       {profileOpen && user && <ProfileMenu user={user} profile={profile} onClose={() => setProfileOpen(false)} />}
     </div>
   );
@@ -232,7 +233,7 @@ export function BlogExperience() {
         <div className="header-actions">
           <label className="search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết" /></label>
           {accountControl}
-          <button className="menu-btn" onClick={() => { setMenuOpen(!menuOpen); setTopicMenuOpen(false); }} aria-label="Mở menu">☰</button>
+          <button className={menuOpen ? "menu-btn open" : "menu-btn"} onClick={() => { setMenuOpen(!menuOpen); setTopicMenuOpen(false); }} aria-label={menuOpen ? "Đóng menu" : "Mở menu"}>{menuOpen ? "×" : "☰"}</button>
         </div>
       </header>
 
