@@ -110,7 +110,7 @@
 
 @media(max-width:620px){
   .admin-shell aside{grid-template-columns:1fr auto;grid-template-areas:"brand exit" "tabs tabs";gap:8px 12px;padding:8px 12px}
-  .admin-brand{grid-area:brand}.admin-exit{grid-area:exit}.admin-shell aside nav{grid-area:tabs;display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .admin-brand{grid-area:brand}.admin-exit{grid-area:exit}.admin-shell aside nav{grid-area:tabs;display:grid;grid-template-columns:repeat(3,1fr);width:100%}
   .admin-shell aside nav button{width:100%;padding:9px 12px;text-align:center}
   .admin-exit{font-size:9px!important;padding:8px 10px}.admin-brand img{width:78px;height:42px}
   .admin-main{padding:22px 14px 36px}.admin-main>header{align-items:flex-end}.admin-main>header>div{min-width:0}.admin-main h1{font-size:29px;line-height:1.12}

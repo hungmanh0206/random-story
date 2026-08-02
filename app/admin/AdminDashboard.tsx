@@ -44,6 +44,14 @@ type Category = {
   created_at: string;
 };
 
+type Member = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: "reader" | "admin";
+  createdAt?: { toDate?: () => Date } | string;
+};
+
 const emptyPost: PostForm = { title: "", slug: "", excerpt: "", content: "", category: "Ghi chép", cover_url: "", status: "draft" };
 const emptyCategory = { name: "", slug: "", description: "" };
 
@@ -59,9 +67,10 @@ const createSlug = (value: string) => value
 export function AdminDashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [authorized, setAuthorized] = useState<boolean | null>(null);
-  const [activeTab, setActiveTab] = useState<"posts" | "categories">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "categories" | "members">("posts");
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [editing, setEditing] = useState<AdminPost | null>(null);
   const [form, setForm] = useState<PostForm>(emptyPost);
   const [formOpen, setFormOpen] = useState(false);
@@ -71,6 +80,7 @@ export function AdminDashboard() {
   const [message, setMessage] = useState("");
   const [postSearch, setPostSearch] = useState("");
   const [categorySearch, setCategorySearch] = useState("");
+  const [memberSearch, setMemberSearch] = useState("");
 
   const loadPosts = async () => {
     try {
@@ -88,6 +98,13 @@ export function AdminDashboard() {
     } catch (error) { setMessage(error instanceof Error ? error.message : "Không thể tải chủ đề."); }
   };
 
+  const loadMembers = async () => {
+    try {
+      const snapshot = await getDocs(collection(firestore, "users"));
+      setMembers(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as Member)).sort((a, b) => (a.full_name || a.email).localeCompare(b.full_name || b.email)));
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Không thể tải thành viên."); }
+  };
+
   useEffect(() => {
     return onAuthStateChanged(firebaseAuth, async (currentUser) => {
       if (!currentUser) { setAuthorized(false); return; }
@@ -95,7 +112,7 @@ export function AdminDashboard() {
       const profile = await getDoc(doc(firestore, "users", currentUser.uid));
       const isAdmin = profile.data()?.role === "admin";
       setAuthorized(isAdmin);
-      if (isAdmin) await Promise.all([loadPosts(), loadCategories()]);
+      if (isAdmin) await Promise.all([loadPosts(), loadCategories(), loadMembers()]);
     });
   }, []);
 
@@ -203,14 +220,19 @@ export function AdminDashboard() {
     return !value || `${category.name} ${category.slug} ${category.description}`.toLowerCase().includes(value);
   });
 
+  const filteredMembers = members.filter((member) => {
+    const value = memberSearch.trim().toLowerCase();
+    return !value || `${member.full_name || ""} ${member.email} ${member.role}`.toLowerCase().includes(value);
+  });
+
   if (authorized === null) return <main className="admin-access"><p>Đang kiểm tra quyền quản trị…</p></main>;
   if (!authorized) return <main className="admin-access"><img src="/logo-original-font.png" alt="random story." /><h1>Không có quyền truy cập</h1><p>Hãy đăng nhập bằng tài khoản quản trị.</p><Link className="primary-btn" href="/">Về trang chủ</Link></main>;
 
   return (
     <div className="admin-shell">
-      <aside><Link className="brand admin-brand" href="/"><picture><source media="(max-width: 620px)" srcSet="/icon.jpg" /><img src="/logo-original-font.png" alt="random story." /></picture></Link><p>Trang quản trị</p><nav><button className={activeTab === "posts" ? "active" : ""} onClick={() => setActiveTab("posts")}>Bài viết</button><button className={activeTab === "categories" ? "active" : ""} onClick={() => setActiveTab("categories")}>Chủ đề</button></nav><Link className="admin-exit" href="/">← Xem trang blog</Link></aside>
+      <aside><Link className="brand admin-brand" href="/"><picture><source media="(max-width: 620px)" srcSet="/icon.jpg" /><img src="/logo-original-font.png" alt="random story." /></picture></Link><p>Trang quản trị</p><nav><button className={activeTab === "posts" ? "active" : ""} onClick={() => setActiveTab("posts")}>Bài viết</button><button className={activeTab === "categories" ? "active" : ""} onClick={() => setActiveTab("categories")}>Chủ đề</button><button className={activeTab === "members" ? "active" : ""} onClick={() => setActiveTab("members")}>Thành viên</button></nav><Link className="admin-exit" href="/">← Xem trang blog</Link></aside>
       <section className="admin-main">
-        <header><div><span className="eyebrow">Random Story CMS</span><h1>{activeTab === "posts" ? "Quản lý bài viết" : "Quản lý chủ đề"}</h1></div><button className="primary-btn" onClick={activeTab === "posts" ? openCreate : openCategoryCreate}>+ {activeTab === "posts" ? "Bài viết mới" : "Chủ đề mới"}</button></header>
+        <header><div><span className="eyebrow">Random Story CMS</span><h1>{activeTab === "posts" ? "Quản lý bài viết" : activeTab === "categories" ? "Quản lý chủ đề" : "Quản lý thành viên"}</h1></div>{activeTab !== "members" && <button className="primary-btn" onClick={activeTab === "posts" ? openCreate : openCategoryCreate}>+ {activeTab === "posts" ? "Bài viết mới" : "Chủ đề mới"}</button>}</header>
         {message && <p className="auth-message">{message}</p>}
         {activeTab === "posts" ? <><div className="stat-grid"><div><span>Tổng bài viết</span><strong>{posts.length}</strong><small>{posts.filter((p) => p.status === "published").length} đã xuất bản</small></div><div><span>Bản nháp</span><strong>{posts.filter((p) => p.status === "draft").length}</strong><small>Đang biên tập</small></div><div><span>Đã lưu trữ</span><strong>{posts.filter((p) => p.status === "archived").length}</strong><small>Không hiển thị</small></div></div>
         <div className="admin-card table-card admin-data-block">
@@ -219,11 +241,17 @@ export function AdminDashboard() {
             {filteredPosts.map((post) => <tr key={post.id}><td data-label="Tiêu đề"><strong>{post.title}</strong><small className="admin-slug">/{post.slug}</small></td><td data-label="Chủ đề">{post.category}</td><td data-label="Trạng thái"><span className="status">{post.status === "published" ? "Đã xuất bản" : post.status === "draft" ? "Bản nháp" : "Lưu trữ"}</span></td><td data-label="Cập nhật">{new Date(post.created_at).toLocaleDateString("vi-VN")}</td><td data-label="Thao tác"><div className="admin-actions"><button onClick={() => openEdit(post)}>Sửa</button><button className="danger-btn" onClick={() => remove(post)}>Xóa</button></div></td></tr>)}
             {!filteredPosts.length && <tr className="admin-no-results"><td colSpan={5}>Không tìm thấy bài viết phù hợp.</td></tr>}
           </tbody></table>
-        </div></> : <div className="admin-card table-card admin-data-block">
+        </div></> : activeTab === "categories" ? <div className="admin-card table-card admin-data-block">
           <div className="card-title"><div><h2>Tất cả chủ đề</h2><small>{filteredCategories.length}/{categories.length} chủ đề</small></div><label className="admin-search"><span>⌕</span><input type="search" value={categorySearch} onChange={(event) => setCategorySearch(event.target.value)} placeholder="Tìm chủ đề..." aria-label="Tìm chủ đề" /></label></div>
           <table><thead><tr><th>Tên chủ đề</th><th>Slug</th><th>Mô tả</th><th>Thao tác</th></tr></thead><tbody>
             {filteredCategories.map((category) => <tr key={category.id}><td data-label="Tên chủ đề"><strong>{category.name}</strong></td><td data-label="Slug">/{category.slug}</td><td data-label="Mô tả">{category.description || "—"}</td><td data-label="Thao tác"><div className="admin-actions"><button onClick={() => openCategoryEdit(category)}>Sửa</button><button className="danger-btn" onClick={() => removeCategory(category)}>Xóa</button></div></td></tr>)}
             {!filteredCategories.length && <tr className="admin-no-results"><td colSpan={4}>Không tìm thấy chủ đề phù hợp.</td></tr>}
+          </tbody></table>
+        </div> : <div className="admin-card table-card admin-data-block">
+          <div className="card-title"><div><h2>Tất cả thành viên</h2><small>{filteredMembers.length}/{members.length} thành viên</small></div><label className="admin-search"><span>⌕</span><input type="search" value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Tìm thành viên..." aria-label="Tìm thành viên" /></label></div>
+          <table><thead><tr><th>Thành viên</th><th>Email</th><th>Vai trò</th></tr></thead><tbody>
+            {filteredMembers.map((member) => <tr key={member.id}><td data-label="Thành viên"><strong>{member.full_name || "Chưa cập nhật tên"}</strong>{member.id === user?.uid && <small className="admin-slug">Tài khoản của bạn</small>}</td><td data-label="Email">{member.email}</td><td data-label="Vai trò"><span className="status">{member.role === "admin" ? "Quản trị viên" : "Thành viên"}</span></td></tr>)}
+            {!filteredMembers.length && <tr className="admin-no-results"><td colSpan={3}>Không tìm thấy thành viên phù hợp.</td></tr>}
           </tbody></table>
         </div>}
       </section>
