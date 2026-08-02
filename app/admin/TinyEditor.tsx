@@ -26,8 +26,21 @@ export function TinyEditor({ value, onChange }: { value: string; onChange: (cont
         skin: false,
         content_css: false,
         plugins: "autolink link lists image table code wordcount",
-        toolbar: "undo redo | blocks | bold italic underline | bullist numlist | link image table | blockquote | code",
-        content_style: "body { font-family: 'Be Vietnam Pro', Arial, sans-serif; font-size: 16px; line-height: 1.7; padding: 12px; }",
+        toolbar: "undo redo | blocks fontfamily fontsize | bold italic underline | bullist numlist | link image table | blockquote | code",
+        font_family_formats:
+          "Be Vietnam Pro='Be Vietnam Pro',sans-serif; JetBrains Mono='JetBrains Mono',monospace; Arial=Arial,sans-serif; Times New Roman='Times New Roman',serif",
+        content_style: `
+          @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+          body {
+            font-family: 'Be Vietnam Pro', Arial, sans-serif;
+            font-size: 16px;
+            font-weight: 400;
+            line-height: 1.7;
+            padding: 12px;
+          }
+          p { font-weight: 400; }
+          code, pre { font-family: 'JetBrains Mono', monospace; }
+        `,
       }}
     />
   );

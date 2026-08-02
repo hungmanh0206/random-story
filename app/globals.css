@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 :root{--ink:#211a25;--cream:#f4eff5;--paper:#fcfafc;--sage:#69466f;--lime:#e1c9e4;--line:#ded4df;--muted:#746b77;--purple:#503357;--purple-dark:#35213b;--purple-soft:#efe5f0}
@@ -27,6 +27,8 @@
 .comment-form .primary-btn{padding:10px 16px}.comment-list{text-align:left;max-width:620px;margin:20px auto 0}
 .comment-list article{padding:18px 0;border-top:1px solid var(--line)}.comment-list strong,.comment-list time{font-size:11px}.comment-list time{float:right;color:var(--muted)}.comment-list p{font-size:14px!important;line-height:1.6;color:var(--ink)!important}
 .rich-article-content img{max-width:100%;height:auto}.rich-article-content ul,.rich-article-content ol{padding-left:24px}.rich-article-content a{color:var(--purple)}
+.article-body{font-weight:400;letter-spacing:normal}.rich-article-content p{font-weight:400}.rich-article-content code,.rich-article-content pre{font-family:"JetBrains Mono",monospace}
+.cover-upload-row{display:flex;align-items:center;gap:12px;margin:8px 0}.cover-upload-row input[type="file"]{flex:1;border:1px dashed var(--line);border-radius:10px;padding:12px;background:var(--paper)}.cover-upload-row small{color:var(--muted);font-size:10px;text-transform:none;letter-spacing:0}.cover-preview{display:block;width:min(320px,100%);max-height:190px;object-fit:cover;border-radius:12px;margin-top:12px;border:1px solid var(--line)}
 
 /* Functional admin CMS */
 .admin-access{min-height:100vh;display:grid;place-items:center;align-content:center;gap:14px;text-align:center;padding:30px}.admin-access img{width:160px;height:120px;object-fit:contain}.admin-access h1{margin:0}

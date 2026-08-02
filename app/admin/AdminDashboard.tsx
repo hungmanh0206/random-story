@@ -4,9 +4,10 @@ import { FormEvent, useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import { onAuthStateChanged } from "firebase/auth";
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, updateDoc } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { firebaseAuth, firestore } from "../../lib/firebase";
+import { firebaseAuth, firebaseStorage, firestore } from "../../lib/firebase";
 
 const TinyEditor = dynamic(() => import("./TinyEditor").then((module) => module.TinyEditor), {
   ssr: false,
@@ -47,6 +48,15 @@ type Category = {
 const emptyPost: PostForm = { title: "", slug: "", excerpt: "", content: "", category: "Ghi chép", cover_url: "", status: "draft" };
 const emptyCategory = { name: "", slug: "", description: "" };
 
+const createSlug = (value: string) => value
+  .trim()
+  .toLowerCase()
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .replace(/\u0111/g, "d")
+  .replace(/[^a-z0-9]+/g, "-")
+  .replace(/^-+|-+$/g, "");
+
 export function AdminDashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [authorized, setAuthorized] = useState<boolean | null>(null);
@@ -60,6 +70,7 @@ export function AdminDashboard() {
   const [categoryForm, setCategoryForm] = useState(emptyCategory);
   const [categoryFormOpen, setCategoryFormOpen] = useState(false);
   const [message, setMessage] = useState("");
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const loadPosts = async () => {
     try {
@@ -95,12 +106,53 @@ export function AdminDashboard() {
     setFormOpen(true); setMessage("");
   };
 
+  const changePostTitle = (title: string) => {
+    setForm((current) => ({
+      ...current,
+      title,
+      slug: !current.slug || current.slug === createSlug(current.title) ? createSlug(title) : current.slug,
+    }));
+  };
+
+  const changeCategoryName = (name: string) => {
+    setCategoryForm((current) => ({
+      ...current,
+      name,
+      slug: !current.slug || current.slug === createSlug(current.name) ? createSlug(name) : current.slug,
+    }));
+  };
+
+  const uploadCover = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setMessage("Vui lòng chọn một tệp hình ảnh.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setMessage("Ảnh bìa không được lớn hơn 10 MB.");
+      return;
+    }
+
+    setUploadingCover(true);
+    setMessage("");
+    try {
+      const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+      const storageRef = ref(firebaseStorage, `post-covers/${Date.now()}-${crypto.randomUUID()}.${extension}`);
+      await uploadBytes(storageRef, file, { contentType: file.type });
+      const coverUrl = await getDownloadURL(storageRef);
+      setForm((current) => ({ ...current, cover_url: coverUrl }));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Không thể tải ảnh bìa lên.");
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
   const save = async (event: FormEvent) => {
     event.preventDefault();
     if (!user) return;
     const payload = {
       ...form,
-      slug: form.slug || form.title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+      slug: createSlug(form.slug || form.title),
       cover_url: form.cover_url || null,
       author_id: user.uid,
       published_at: form.status === "published" ? editing?.published_at || new Date().toISOString() : null,
@@ -137,7 +189,7 @@ export function AdminDashboard() {
     event.preventDefault();
     const payload = {
       ...categoryForm,
-      slug: categoryForm.slug || categoryForm.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+      slug: createSlug(categoryForm.slug || categoryForm.name),
       updated_at: new Date().toISOString(),
     };
     try {
@@ -177,16 +229,23 @@ export function AdminDashboard() {
         </div>}
       </section>
       {formOpen && <div className="modal-backdrop" onMouseDown={() => setFormOpen(false)}><section className="post-editor" onMouseDown={(e) => e.stopPropagation()}><button className="close-btn" onClick={() => setFormOpen(false)}>×</button><h2>{editing ? "Sửa bài viết" : "Bài viết mới"}</h2><form onSubmit={save}>
-        <label>Tiêu đề<input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
+        <label>Tiêu đề<input required value={form.title} onChange={(e) => changePostTitle(e.target.value)} /></label>
         <div className="editor-grid"><label>Slug<input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="Tự tạo từ tiêu đề" /></label><label>Chủ đề<select required value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{categories.map((category) => <option key={category.id} value={category.name}>{category.name}</option>)}</select></label></div>
         <label>Tóm tắt<textarea required value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} /></label>
         <label>Nội dung<div className="tinymce-wrap"><TinyEditor value={form.content} onChange={(content) => setForm({ ...form, content })} /></div></label>
-        <label>URL ảnh bìa<input type="url" value={form.cover_url} onChange={(e) => setForm({ ...form, cover_url: e.target.value })} /></label>
+        <label>Ảnh bìa
+          <span className="cover-upload-row">
+            <input type="file" accept="image/*" disabled={uploadingCover} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadCover(file); event.target.value = ""; }} />
+            <small>{uploadingCover ? "Đang tải ảnh lên…" : "JPG, PNG, WebP hoặc GIF · tối đa 10 MB"}</small>
+          </span>
+          <input type="url" value={form.cover_url} onChange={(e) => setForm({ ...form, cover_url: e.target.value })} placeholder="Hoặc nhập URL ảnh" />
+          {form.cover_url && <img className="cover-preview" src={form.cover_url} alt="Xem trước ảnh bìa" />}
+        </label>
         <label>Trạng thái<select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as typeof form.status })}><option value="draft">Bản nháp</option><option value="published">Xuất bản</option><option value="archived">Lưu trữ</option></select></label>
-        {message && <p className="auth-message">{message}</p>}<button className="primary-btn">{editing ? "Lưu thay đổi" : "Tạo bài viết"}</button>
+        {message && <p className="auth-message">{message}</p>}<button className="primary-btn" disabled={uploadingCover}>{editing ? "Lưu thay đổi" : "Tạo bài viết"}</button>
       </form></section></div>}
       {categoryFormOpen && <div className="modal-backdrop" onMouseDown={() => setCategoryFormOpen(false)}><section className="category-editor" onMouseDown={(e) => e.stopPropagation()}><button className="close-btn" onClick={() => setCategoryFormOpen(false)}>×</button><h2>{editingCategory ? "Sửa chủ đề" : "Chủ đề mới"}</h2><form onSubmit={saveCategory}>
-        <label>Tên chủ đề<input required value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} /></label>
+        <label>Tên chủ đề<input required value={categoryForm.name} onChange={(e) => changeCategoryName(e.target.value)} /></label>
         <label>Slug<input value={categoryForm.slug} onChange={(e) => setCategoryForm({ ...categoryForm, slug: e.target.value })} placeholder="Tự tạo từ tên" /></label>
         <label>Mô tả<textarea value={categoryForm.description} onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })} /></label>
         {message && <p className="auth-message">{message}</p>}<button className="primary-btn">{editingCategory ? "Lưu thay đổi" : "Tạo chủ đề"}</button>

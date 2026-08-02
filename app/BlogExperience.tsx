@@ -85,7 +85,7 @@ function mapPost(row: Record<string, unknown>): Post {
     title: String(row.title),
     excerpt: String(row.excerpt ?? ""),
     content,
-    image: String(row.coverUrl ?? row.cover_url ?? "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1400&q=85"),
+    image: String(row.cover_url ?? row.coverUrl ?? "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1400&q=85"),
     date: published.toLocaleDateString("vi-VN"),
     read: `${Math.max(1, Math.ceil(content.split(/\s+/).length / 220))} phút đọc`,
     likes: Number(row.likeCount ?? row.like_count ?? 0),
