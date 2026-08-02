@@ -155,6 +155,12 @@ export function BlogExperience() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const chooseCategory = (item: string) => {
+    setCategory(item);
+    setMenuOpen(false);
+    window.setTimeout(() => document.getElementById("stories")?.scrollIntoView({ behavior: "smooth" }), 0);
+  };
+
   const filtered = useMemo(() => {
     const value = query.trim().toLowerCase();
     return posts.filter((post) => {
@@ -198,7 +204,12 @@ export function BlogExperience() {
         <a className="brand" href="#top" aria-label="Random Story"><img src="/logo-original-font.png" alt="random story." /></a>
         <nav className={menuOpen ? "nav open" : "nav"} aria-label="Điều hướng chính">
           <a href="#stories">Bài viết</a>
-          <a href="#topics">Chủ đề</a>
+          <div className="nav-dropdown">
+            <button className="nav-link nav-dropdown-trigger" aria-haspopup="true">Chủ đề <span>⌄</span></button>
+            <div className="nav-dropdown-menu">
+              {categories.map((item) => <button key={item} className={category === item ? "active" : ""} onClick={() => chooseCategory(item)}>{item}</button>)}
+            </div>
+          </div>
           <a href="#about">Về chúng tôi</a>
         </nav>
         <div className="header-actions">
@@ -217,13 +228,13 @@ export function BlogExperience() {
           <p>{featured.excerpt}</p>
           <button className="text-link light-link" onClick={() => openPost(featured)}>Đọc câu chuyện <span>↗</span></button>
         </div>
-        <p className="hero-note">Một blog về những điều đáng để chậm lại.</p>
+        <p className="hero-note">Lịch sử · Khoa học · Con người · Thế giới</p>
       </section>
 
       <section id="stories" className="content-section">
         <div className="section-heading">
           <div><span className="eyebrow">Mới trên Random Story</span><h2>Những câu chuyện gần đây</h2></div>
-          <p>Góc nhỏ dành cho công nghệ, sách, những chuyến đi và cả những ngày rất bình thường.</p>
+          <p>Từ những dấu mốc lịch sử đến các khám phá khoa học và những điều kỳ thú trong cuộc sống — mỗi bài viết là một hành trình mở rộng hiểu biết.</p>
         </div>
         <div id="topics" className="filter-row" role="group" aria-label="Lọc theo chủ đề">
           {categories.map((item) => <button key={item} className={category === item ? "filter active" : "filter"} onClick={() => setCategory(item)}>{item}</button>)}
@@ -235,8 +246,8 @@ export function BlogExperience() {
 
       <section id="about" className="about-section">
         <div className="about-mark">n</div>
-        <div><span className="eyebrow light">Về Random Story</span><h2>Một khoảng lặng nhỏ<br />giữa internet rộng lớn.</h2></div>
-        <div className="about-copy"><p>Random Story được tạo nên để lưu lại những điều đáng nhớ: một ý tưởng hay, một cuốn sách đẹp, một nơi chốn khiến lòng mình dịu lại.</p></div>
+        <div><span className="eyebrow light">Về Random Story</span><h2>Thế giới rộng lớn.<br />Câu chuyện thì vô tận.</h2></div>
+        <div className="about-copy"><p>Random Story kể lại lịch sử, giải thích khoa học và khám phá những chủ đề gần gũi bằng ngôn ngữ dễ hiểu. Chúng tôi tin rằng kiến thức trở nên đáng nhớ nhất khi được kể thành một câu chuyện hay.</p></div>
       </section>
 
       <Newsletter />
@@ -425,9 +436,9 @@ function Newsletter() {
     await setDoc(doc(firestore, "newsletter", email.trim().toLowerCase()), { email: email.trim().toLowerCase(), active: true, subscribedAt: serverTimestamp() });
     setSent(true);
   };
-  return <section className="newsletter"><span className="eyebrow">Thư từ Random Story</span><h2>Một lá thư nhỏ,<br />thỉnh thoảng thôi.</h2><p>Nhận những bài viết mới và vài điều hay ho được chúng tôi nhặt nhạnh trên đường.</p>{sent ? <div className="thanks">Cảm ơn bạn. Hẹn gặp trong lá thư tới! ✦</div> : <form onSubmit={subscribe}><input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email của bạn" /><button>Đăng ký ↗</button></form>}</section>;
+  return <section className="newsletter"><span className="eyebrow">Thư từ Random Story</span><h2>Thêm một câu chuyện,<br />thêm một điều để biết.</h2><p>Nhận bài viết mới về lịch sử, khoa học và những chủ đề thú vị được chọn lọc từ Random Story.</p>{sent ? <div className="thanks">Cảm ơn bạn. Hẹn gặp trong câu chuyện tới! ✦</div> : <form onSubmit={subscribe}><input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email của bạn" /><button>Đăng ký ↗</button></form>}</section>;
 }
 
 function Footer() {
-  return <footer><a className="brand footer-brand" href="#top"><img src="/logo-original-font.png" alt="random story." /></a><p>Ghi lại điều đáng nhớ.<br />Chia sẻ điều đáng nghĩ.</p><div><a href="#stories">Bài viết</a><a href="#topics">Chủ đề</a><a href="#about">Về chúng tôi</a></div><div><a href="#">Instagram</a><a href="#">Threads</a><a href="mailto:hello@randomstory.vn">Email</a></div><small>© 2026 Random Story</small></footer>;
+  return <footer><a className="brand footer-brand" href="#top"><img src="/logo-original-font.png" alt="random story." /></a><p>Kể chuyện để hiểu quá khứ.<br />Khám phá để nhìn rộng tương lai.</p><div><a href="#stories">Bài viết</a><a href="#topics">Chủ đề</a><a href="#about">Về chúng tôi</a></div><div><a href="#">Instagram</a><a href="#">Threads</a><a href="mailto:hello@randomstory.vn">Email</a></div><small>© 2026 Random Story</small></footer>;
 }
