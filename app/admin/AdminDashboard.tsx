@@ -123,6 +123,18 @@ export function AdminDashboard() {
   const save = async (event: FormEvent) => {
     event.preventDefault();
     if (!user) return;
+    if (form.cover_url) {
+      try {
+        const imageUrl = new URL(form.cover_url);
+        if (["unsplash.com", "www.unsplash.com"].includes(imageUrl.hostname)) {
+          setMessage("Đây là URL trang Unsplash, không phải URL file ảnh. Hãy mở ảnh và sao chép địa chỉ hình ảnh trực tiếp (images.unsplash.com).");
+          return;
+        }
+      } catch {
+        setMessage("URL ảnh bìa không hợp lệ.");
+        return;
+      }
+    }
     const payload = {
       ...form,
       slug: createSlug(form.slug || form.title),
