@@ -57,6 +57,10 @@
   .admin-shell{display:block}.admin-shell aside{position:static;height:auto}.admin-main{padding:24px}.admin-main>header{gap:15px}.table-card{overflow:auto}
 }
 
+/* Compact header brand; use the square favicon artwork on mobile */
+.header-brand picture{display:block;height:42px}.site-header .header-brand img,.article-header .header-brand img{display:block;width:82px;height:42px;object-fit:contain;object-position:left center}
+@media(max-width:620px){.header-brand picture{width:42px;height:42px}.site-header .header-brand img,.article-header .header-brand img{width:42px;height:42px;object-fit:cover;object-position:center;border-radius:11px}}
+
 /* Responsive admin dashboard */
 @media(max-width:900px){
   .admin-shell{display:block;min-width:0}

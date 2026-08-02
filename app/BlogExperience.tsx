@@ -219,7 +219,7 @@ export function BlogExperience() {
   return (
     <main>
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="Random Story"><img src="/logo-original-font.png" alt="random story." /></a>
+        <a className="brand header-brand" href="#top" aria-label="Random Story"><picture><source media="(max-width: 620px)" srcSet="/icon.jpg" /><img src="/logo-original-font.png" alt="random story." /></picture></a>
         <nav className={menuOpen ? "nav open" : "nav"} aria-label="Điều hướng chính">
           <a href="#stories">Bài viết</a>
           <div className={topicMenuOpen ? "nav-dropdown open" : "nav-dropdown"}>
@@ -372,7 +372,7 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
   return (
     <main className="article-page">
       <header className="article-header">
-        <button className="brand" onClick={onBack}><img src="/logo-original-font.png" alt="random story." /></button>
+        <button className="brand header-brand" onClick={onBack}><picture><source media="(max-width: 620px)" srcSet="/icon.jpg" /><img src="/logo-original-font.png" alt="random story." /></picture></button>
         <button className="back-btn" onClick={onBack}>← Trở về trang chủ</button>
         {accountButton}
       </header>
