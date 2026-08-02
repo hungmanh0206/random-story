@@ -107,6 +107,7 @@ export function BlogExperience() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [topicMenuOpen, setTopicMenuOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
 
@@ -158,6 +159,7 @@ export function BlogExperience() {
 
   const chooseCategory = (item: string) => {
     setCategory(item);
+    setTopicMenuOpen(false);
     setMenuOpen(false);
     window.setTimeout(() => document.getElementById("stories")?.scrollIntoView({ behavior: "smooth" }), 0);
   };
@@ -219,8 +221,8 @@ export function BlogExperience() {
         <a className="brand" href="#top" aria-label="Random Story"><img src="/logo-original-font.png" alt="random story." /></a>
         <nav className={menuOpen ? "nav open" : "nav"} aria-label="Điều hướng chính">
           <a href="#stories">Bài viết</a>
-          <div className="nav-dropdown">
-            <button className="nav-link nav-dropdown-trigger" aria-haspopup="true">Chủ đề <span>⌄</span></button>
+          <div className={topicMenuOpen ? "nav-dropdown open" : "nav-dropdown"}>
+            <button className="nav-link nav-dropdown-trigger" aria-haspopup="true" aria-expanded={topicMenuOpen} onClick={() => setTopicMenuOpen((open) => !open)}>Chủ đề <span>⌄</span></button>
             <div className="nav-dropdown-menu">
               {categories.map((item) => <button key={item} className={category === item ? "active" : ""} onClick={() => chooseCategory(item)}>{item}</button>)}
             </div>
@@ -230,7 +232,7 @@ export function BlogExperience() {
         <div className="header-actions">
           <label className="search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết" /></label>
           {accountControl}
-          <button className="menu-btn" onClick={() => setMenuOpen(!menuOpen)} aria-label="Mở menu">☰</button>
+          <button className="menu-btn" onClick={() => { setMenuOpen(!menuOpen); setTopicMenuOpen(false); }} aria-label="Mở menu">☰</button>
         </div>
       </header>
 
