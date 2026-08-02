@@ -69,6 +69,8 @@ export function AdminDashboard() {
   const [categoryForm, setCategoryForm] = useState(emptyCategory);
   const [categoryFormOpen, setCategoryFormOpen] = useState(false);
   const [message, setMessage] = useState("");
+  const [postSearch, setPostSearch] = useState("");
+  const [categorySearch, setCategorySearch] = useState("");
 
   const loadPosts = async () => {
     try {
@@ -191,6 +193,16 @@ export function AdminDashboard() {
     catch (error) { setMessage(error instanceof Error ? error.message : "Không thể xóa chủ đề."); }
   };
 
+  const filteredPosts = posts.filter((post) => {
+    const value = postSearch.trim().toLowerCase();
+    return !value || `${post.title} ${post.slug} ${post.category} ${post.status}`.toLowerCase().includes(value);
+  });
+
+  const filteredCategories = categories.filter((category) => {
+    const value = categorySearch.trim().toLowerCase();
+    return !value || `${category.name} ${category.slug} ${category.description}`.toLowerCase().includes(value);
+  });
+
   if (authorized === null) return <main className="admin-access"><p>Đang kiểm tra quyền quản trị…</p></main>;
   if (!authorized) return <main className="admin-access"><img src="/logo-original-font.png" alt="random story." /><h1>Không có quyền truy cập</h1><p>Hãy đăng nhập bằng tài khoản quản trị.</p><Link className="primary-btn" href="/">Về trang chủ</Link></main>;
 
@@ -202,14 +214,16 @@ export function AdminDashboard() {
         {message && <p className="auth-message">{message}</p>}
         {activeTab === "posts" ? <><div className="stat-grid"><div><span>Tổng bài viết</span><strong>{posts.length}</strong><small>{posts.filter((p) => p.status === "published").length} đã xuất bản</small></div><div><span>Bản nháp</span><strong>{posts.filter((p) => p.status === "draft").length}</strong><small>Đang biên tập</small></div><div><span>Đã lưu trữ</span><strong>{posts.filter((p) => p.status === "archived").length}</strong><small>Không hiển thị</small></div></div>
         <div className="admin-card table-card admin-data-block">
-          <div className="card-title"><h2>Tất cả bài viết</h2></div>
+          <div className="card-title"><div><h2>Tất cả bài viết</h2><small>{filteredPosts.length}/{posts.length} bài viết</small></div><label className="admin-search"><span>⌕</span><input type="search" value={postSearch} onChange={(event) => setPostSearch(event.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết" /></label></div>
           <table><thead><tr><th>Tiêu đề</th><th>Chủ đề</th><th>Trạng thái</th><th>Cập nhật</th><th>Thao tác</th></tr></thead><tbody>
-            {posts.map((post) => <tr key={post.id}><td data-label="Tiêu đề"><strong>{post.title}</strong><small className="admin-slug">/{post.slug}</small></td><td data-label="Chủ đề">{post.category}</td><td data-label="Trạng thái"><span className="status">{post.status === "published" ? "Đã xuất bản" : post.status === "draft" ? "Bản nháp" : "Lưu trữ"}</span></td><td data-label="Cập nhật">{new Date(post.created_at).toLocaleDateString("vi-VN")}</td><td data-label="Thao tác"><div className="admin-actions"><button onClick={() => openEdit(post)}>Sửa</button><button className="danger-btn" onClick={() => remove(post)}>Xóa</button></div></td></tr>)}
+            {filteredPosts.map((post) => <tr key={post.id}><td data-label="Tiêu đề"><strong>{post.title}</strong><small className="admin-slug">/{post.slug}</small></td><td data-label="Chủ đề">{post.category}</td><td data-label="Trạng thái"><span className="status">{post.status === "published" ? "Đã xuất bản" : post.status === "draft" ? "Bản nháp" : "Lưu trữ"}</span></td><td data-label="Cập nhật">{new Date(post.created_at).toLocaleDateString("vi-VN")}</td><td data-label="Thao tác"><div className="admin-actions"><button onClick={() => openEdit(post)}>Sửa</button><button className="danger-btn" onClick={() => remove(post)}>Xóa</button></div></td></tr>)}
+            {!filteredPosts.length && <tr className="admin-no-results"><td colSpan={5}>Không tìm thấy bài viết phù hợp.</td></tr>}
           </tbody></table>
         </div></> : <div className="admin-card table-card admin-data-block">
-          <div className="card-title"><h2>Tất cả chủ đề</h2><span>{categories.length} chủ đề</span></div>
+          <div className="card-title"><div><h2>Tất cả chủ đề</h2><small>{filteredCategories.length}/{categories.length} chủ đề</small></div><label className="admin-search"><span>⌕</span><input type="search" value={categorySearch} onChange={(event) => setCategorySearch(event.target.value)} placeholder="Tìm chủ đề..." aria-label="Tìm chủ đề" /></label></div>
           <table><thead><tr><th>Tên chủ đề</th><th>Slug</th><th>Mô tả</th><th>Thao tác</th></tr></thead><tbody>
-            {categories.map((category) => <tr key={category.id}><td data-label="Tên chủ đề"><strong>{category.name}</strong></td><td data-label="Slug">/{category.slug}</td><td data-label="Mô tả">{category.description || "—"}</td><td data-label="Thao tác"><div className="admin-actions"><button onClick={() => openCategoryEdit(category)}>Sửa</button><button className="danger-btn" onClick={() => removeCategory(category)}>Xóa</button></div></td></tr>)}
+            {filteredCategories.map((category) => <tr key={category.id}><td data-label="Tên chủ đề"><strong>{category.name}</strong></td><td data-label="Slug">/{category.slug}</td><td data-label="Mô tả">{category.description || "—"}</td><td data-label="Thao tác"><div className="admin-actions"><button onClick={() => openCategoryEdit(category)}>Sửa</button><button className="danger-btn" onClick={() => removeCategory(category)}>Xóa</button></div></td></tr>)}
+            {!filteredCategories.length && <tr className="admin-no-results"><td colSpan={4}>Không tìm thấy chủ đề phù hợp.</td></tr>}
           </tbody></table>
         </div>}
       </section>
