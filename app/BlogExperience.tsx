@@ -229,6 +229,7 @@ export function BlogExperience() {
             </div>
           </div>
           <a href="#about">Về chúng tôi</a>
+          <label className="mobile-nav-search"><span>⌕</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết trên mobile" /></label>
         </nav>
         <div className="header-actions">
           <label className="search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết" /></label>
