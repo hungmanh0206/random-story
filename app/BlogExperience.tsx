@@ -258,6 +258,7 @@ export function BlogExperience() {
         <div id="topics" className="filter-row" role="group" aria-label="Lọc theo chủ đề">
           {categories.map((item) => <button key={item} className={category === item ? "filter active" : "filter"} onClick={() => setCategory(item)}>{item}</button>)}
         </div>
+        <label className="mobile-topic-filter"><span><small>Lọc theo chủ đề</small><strong>{category}</strong></span><select value={category} onChange={(event) => chooseCategory(event.target.value)} aria-label="Lọc bài viết theo chủ đề">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select><b>⌄</b></label>
         {filtered.length ? <><div className="post-grid">{visiblePosts.map((post, index) => <PostCard key={post.id} post={post} index={(currentPage - 1) * postsPerPage + index} onOpen={() => openPost(post)} />)}</div>
           {pageCount > 1 && <nav className="pagination" aria-label="Phân trang bài viết">
             <button onClick={() => changePage(currentPage - 1)} disabled={currentPage === 1}>← Trước</button>
