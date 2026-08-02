@@ -456,16 +456,9 @@ function LoginModal({ onClose }: { onClose: () => void }) {
 }
 
 function Newsletter() {
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
-  const subscribe = async (event: FormEvent) => {
-    event.preventDefault();
-    await setDoc(doc(firestore, "newsletter", email.trim().toLowerCase()), { email: email.trim().toLowerCase(), active: true, subscribedAt: serverTimestamp() });
-    setSent(true);
-  };
-  return <section className="newsletter"><span className="eyebrow">Thư từ Random Story</span><h2>Thêm một câu chuyện,<br />thêm một điều để biết.</h2><p>Nhận bài viết mới về lịch sử, khoa học và những chủ đề thú vị được chọn lọc từ Random Story.</p>{sent ? <div className="thanks">Cảm ơn bạn. Hẹn gặp trong câu chuyện tới! ✦</div> : <form onSubmit={subscribe}><input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email của bạn" /><button>Đăng ký ↗</button></form>}</section>;
+  return <section className="newsletter"><span className="eyebrow">Khám phá cùng Random Story</span><h2>Mỗi câu chuyện,<br />mở ra một góc nhìn mới.</h2><p>Lịch sử, khoa học và thế giới quanh ta luôn có những điều đáng để tìm hiểu. Chọn một câu chuyện và bắt đầu hành trình khám phá của bạn.</p><a className="newsletter-cta" href="#stories">Khám phá bài viết <span>↗</span></a></section>;
 }
 
 function Footer() {
-  return <footer><a className="brand footer-brand" href="#top"><img src="/logo-original-font.png" alt="random story." /></a><p>Kể chuyện để hiểu quá khứ.<br />Khám phá để nhìn rộng tương lai.</p><div><a href="#stories">Bài viết</a><a href="#topics">Chủ đề</a><a href="#about">Về chúng tôi</a></div><div><a href="#">Instagram</a><a href="#">Threads</a><a href="mailto:hello@randomstory.vn">Email</a></div><small>© 2026 Random Story</small></footer>;
+  return <footer><a className="brand footer-brand" href="#top"><img src="/logo-original-font.png" alt="random story." /></a><p>Kể chuyện để hiểu quá khứ.<br />Khám phá để nhìn rộng tương lai.</p><div><a href="#stories">Bài viết</a><a href="#topics">Chủ đề</a><a href="#about">Về chúng tôi</a></div><div><a href="https://www.facebook.com/randomstory0206" target="_blank" rel="noreferrer">Facebook · Random Story ↗</a><a href="https://www.facebook.com/randombook0206" target="_blank" rel="noreferrer">Facebook · Random Book ↗</a></div><small>© 2026 Random Story</small></footer>;
 }
