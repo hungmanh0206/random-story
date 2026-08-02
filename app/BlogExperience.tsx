@@ -1,8 +1,10 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import type { User } from "@supabase/supabase-js";
-import { createSupabaseBrowserClient } from "../lib/supabase";
+import type { User } from "firebase/auth";
+import { createUserWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut as firebaseSignOut, updateProfile } from "firebase/auth";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query as firestoreQuery, serverTimestamp, setDoc, where } from "firebase/firestore";
+import { firebaseAuth, firestore } from "../lib/firebase";
 
 export type Post = {
   id: string;
@@ -69,10 +71,13 @@ const fallbackPosts: Post[] = [
   },
 ];
 
-const categories = ["Tất cả", "Công nghệ", "Sách", "Du lịch", "Sống chậm", "Ghi chép"];
+const fallbackCategories = ["Tất cả", "Công nghệ", "Sách", "Du lịch", "Sống chậm", "Ghi chép"];
 
 function mapPost(row: Record<string, unknown>): Post {
-  const published = row.published_at ? new Date(String(row.published_at)) : new Date(String(row.created_at));
+  const rawPublished = row.publishedAt ?? row.published_at ?? row.createdAt ?? row.created_at;
+  const published = rawPublished && typeof rawPublished === "object" && "toDate" in rawPublished
+    ? (rawPublished as { toDate: () => Date }).toDate()
+    : new Date(String(rawPublished ?? Date.now()));
   const content = String(row.content ?? "");
   return {
     id: String(row.id),
@@ -80,15 +85,16 @@ function mapPost(row: Record<string, unknown>): Post {
     title: String(row.title),
     excerpt: String(row.excerpt ?? ""),
     content,
-    image: String(row.cover_url || "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1400&q=85"),
+    image: String(row.coverUrl ?? row.cover_url ?? "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1400&q=85"),
     date: published.toLocaleDateString("vi-VN"),
     read: `${Math.max(1, Math.ceil(content.split(/\s+/).length / 220))} phút đọc`,
-    likes: Number(row.like_count ?? 0),
+    likes: Number(row.likeCount ?? row.like_count ?? 0),
   };
 }
 
 export function BlogExperience() {
   const [category, setCategory] = useState("Tất cả");
+  const [categories, setCategories] = useState(fallbackCategories);
   const [query, setQuery] = useState("");
   const [posts, setPosts] = useState<Post[]>(fallbackPosts);
   const [active, setActive] = useState<Post | null>(null);
@@ -99,33 +105,27 @@ export function BlogExperience() {
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
-
     const loadUser = async (nextUser: User | null) => {
       setUser(nextUser);
       if (!nextUser) {
         setProfile(null);
         return;
       }
-      const { data } = await supabase.from("profiles").select("*").eq("id", nextUser.id).single();
-      setProfile(data as Profile | null);
+      const snapshot = await getDoc(doc(firestore, "users", nextUser.uid));
+      setProfile(snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as Profile) : null);
     };
 
-    supabase.auth.getUser().then(({ data }) => loadUser(data.user));
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => loadUser(session?.user ?? null));
-
-    supabase
-      .from("posts")
-      .select("*, post_likes(count)")
-      .eq("status", "published")
-      .order("published_at", { ascending: false })
-      .then(({ data }) => {
-        if (data?.length) {
-          setPosts(data.map((row) => mapPost({ ...row, like_count: row.post_likes?.[0]?.count ?? 0 })));
+    const unsubscribe = onAuthStateChanged(firebaseAuth, loadUser);
+    Promise.all([getDocs(firestoreQuery(collection(firestore, "posts"), where("status", "==", "published"))), getDocs(collection(firestore, "categories"))])
+      .then(([postSnapshot, categorySnapshot]) => {
+        if (!postSnapshot.empty) {
+          const rows = postSnapshot.docs.map((item) => mapPost({ id: item.id, ...item.data() }));
+          rows.sort((a, b) => b.date.localeCompare(a.date));
+          setPosts(rows);
         }
+        if (!categorySnapshot.empty) setCategories(["Tất cả", ...categorySnapshot.docs.map((item) => String(item.data().name)).sort()]);
       });
-
-    return () => authListener.subscription.unsubscribe();
+    return unsubscribe;
   }, []);
 
   const filtered = useMemo(() => {
@@ -221,7 +221,7 @@ export function BlogExperience() {
 
 function AccountButton({ user, profile, onClick }: { user: User | null; profile: Profile | null; onClick: () => void }) {
   if (!user) return <button className="login-btn" onClick={onClick}>Đăng nhập</button>;
-  const name = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Bạn";
+  const name = profile?.full_name || user.displayName || user.email?.split("@")[0] || "Bạn";
   const initial = name.trim().charAt(0).toUpperCase();
   return (
     <button className="account-chip" onClick={onClick}>
@@ -232,9 +232,9 @@ function AccountButton({ user, profile, onClick }: { user: User | null; profile:
 }
 
 function ProfileMenu({ user, profile, onClose }: { user: User; profile: Profile | null; onClose: () => void }) {
-  const name = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Bạn";
+  const name = profile?.full_name || user.displayName || user.email?.split("@")[0] || "Bạn";
   const signOut = async () => {
-    await createSupabaseBrowserClient().auth.signOut();
+    await firebaseSignOut(firebaseAuth);
     onClose();
   };
   return (
@@ -270,12 +270,14 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
 
   const loadSocial = async () => {
     if (!isDatabasePost) return;
-    const supabase = createSupabaseBrowserClient();
-    const { data } = await supabase.from("comments").select("id,content,created_at,profiles(full_name,avatar_url)").eq("post_id", post.id).eq("is_approved", true).order("created_at");
-    setComments((data ?? []) as unknown as Comment[]);
+    const commentSnapshot = await getDocs(firestoreQuery(collection(firestore, "comments"), where("postId", "==", post.id), where("approved", "==", true)));
+    const rows = commentSnapshot.docs.map((item) => {
+      const data = item.data();
+      return { id: item.id, content: data.content, created_at: data.createdAt?.toDate?.()?.toISOString?.() ?? new Date().toISOString(), profiles: { full_name: data.authorName ?? null, avatar_url: data.authorAvatar ?? null } } as Comment;
+    }).sort((a, b) => a.created_at.localeCompare(b.created_at));
+    setComments(rows);
     if (user) {
-      const { data: like } = await supabase.from("post_likes").select("post_id").eq("post_id", post.id).eq("user_id", user.id).maybeSingle();
-      setLiked(Boolean(like));
+      setLiked((await getDoc(doc(firestore, "likes", `${post.id}_${user.uid}`))).exists());
     }
   };
 
@@ -286,25 +288,23 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
     void refresh();
     // loadSocial intentionally reloads whenever the active post or signed-in user changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [post.id, user?.id]);
+  }, [post.id, user?.uid]);
 
   const toggleLike = async () => {
     if (!user || !isDatabasePost) return;
-    const supabase = createSupabaseBrowserClient();
+    const likeRef = doc(firestore, "likes", `${post.id}_${user.uid}`);
     if (liked) {
-      const { error } = await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", user.id);
-      if (!error) { setLiked(false); setReactionCount((value) => Math.max(0, value - 1)); }
+      await deleteDoc(likeRef); setLiked(false); setReactionCount((value) => Math.max(0, value - 1));
     } else {
-      const { error } = await supabase.from("post_likes").insert({ post_id: post.id, user_id: user.id });
-      if (!error) { setLiked(true); setReactionCount((value) => value + 1); }
+      await setDoc(likeRef, { postId: post.id, userId: user.uid, createdAt: serverTimestamp() }); setLiked(true); setReactionCount((value) => value + 1);
     }
   };
 
   const addComment = async (event: FormEvent) => {
     event.preventDefault();
     if (!user || !comment.trim() || !isDatabasePost) return;
-    const { error } = await createSupabaseBrowserClient().from("comments").insert({ post_id: post.id, author_id: user.id, content: comment.trim() });
-    if (!error) { setComment(""); await loadSocial(); }
+    await addDoc(collection(firestore, "comments"), { postId: post.id, authorId: user.uid, authorName: profile?.full_name || user.displayName || user.email?.split("@")[0] || "Độc giả", authorAvatar: profile?.avatar_url || user.photoURL || null, content: comment.trim(), approved: true, createdAt: serverTimestamp() });
+    setComment(""); await loadSocial();
   };
 
   return (
@@ -348,23 +348,26 @@ function LoginModal({ onClose }: { onClose: () => void }) {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setLoading(true); setMessage("");
-    const supabase = createSupabaseBrowserClient();
-    const result = mode === "login"
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName, name: fullName } } });
-    setLoading(false);
-    if (result.error) return setMessage(result.error.message);
-    if (result.data.user && !result.data.session) return setMessage("Hãy kiểm tra email để xác nhận tài khoản.");
-    onClose();
+    try {
+      if (mode === "login") await signInWithEmailAndPassword(firebaseAuth, email, password);
+      else {
+        const result = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+        await updateProfile(result.user, { displayName: fullName });
+        await setDoc(doc(firestore, "users", result.user.uid), { email, full_name: fullName, avatar_url: null, role: "reader", createdAt: serverTimestamp() });
+      }
+      onClose();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Không thể đăng nhập."); }
+    finally { setLoading(false); }
   };
 
   const loginWithGoogle = async () => {
     setLoading(true); setMessage("");
-    const { error } = await createSupabaseBrowserClient().auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/`, queryParams: { access_type: "offline", prompt: "select_account" } },
-    });
-    if (error) { setLoading(false); setMessage(error.message); }
+    try {
+      const result = await signInWithPopup(firebaseAuth, new GoogleAuthProvider());
+      const ref = doc(firestore, "users", result.user.uid);
+      if (!(await getDoc(ref)).exists()) await setDoc(ref, { email: result.user.email, full_name: result.user.displayName, avatar_url: result.user.photoURL, role: "reader", createdAt: serverTimestamp() });
+      onClose();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Không thể đăng nhập với Google."); setLoading(false); }
   };
 
   return (
@@ -392,8 +395,8 @@ function Newsletter() {
   const [sent, setSent] = useState(false);
   const subscribe = async (event: FormEvent) => {
     event.preventDefault();
-    const { error } = await createSupabaseBrowserClient().from("newsletter_subscribers").upsert({ email });
-    if (!error) setSent(true);
+    await setDoc(doc(firestore, "newsletter", email.trim().toLowerCase()), { email: email.trim().toLowerCase(), active: true, subscribedAt: serverTimestamp() });
+    setSent(true);
   };
   return <section className="newsletter"><span className="eyebrow">Thư từ Random Story</span><h2>Một lá thư nhỏ,<br />thỉnh thoảng thôi.</h2><p>Nhận những bài viết mới và vài điều hay ho được chúng tôi nhặt nhạnh trên đường.</p>{sent ? <div className="thanks">Cảm ơn bạn. Hẹn gặp trong lá thư tới! ✦</div> : <form onSubmit={subscribe}><input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email của bạn" /><button>Đăng ký ↗</button></form>}</section>;
 }

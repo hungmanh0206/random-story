@@ -1,10 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import type { User } from "@supabase/supabase-js";
+import type { User } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, updateDoc } from "firebase/firestore";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { createSupabaseBrowserClient } from "../../lib/supabase";
+import { firebaseAuth, firestore } from "../../lib/firebase";
 
 const TinyEditor = dynamic(() => import("./TinyEditor").then((module) => module.TinyEditor), {
   ssr: false,
@@ -60,22 +62,27 @@ export function AdminDashboard() {
   const [message, setMessage] = useState("");
 
   const loadPosts = async () => {
-    const { data, error } = await createSupabaseBrowserClient().from("posts").select("*").order("created_at", { ascending: false });
-    if (error) setMessage(error.message); else setPosts((data ?? []) as AdminPost[]);
+    try {
+      const snapshot = await getDocs(collection(firestore, "posts"));
+      const rows = snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as AdminPost));
+      rows.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+      setPosts(rows);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Không thể tải bài viết."); }
   };
 
   const loadCategories = async () => {
-    const { data, error } = await createSupabaseBrowserClient().from("categories").select("*").order("name");
-    if (error) setMessage(error.message); else setCategories((data ?? []) as Category[]);
+    try {
+      const snapshot = await getDocs(collection(firestore, "categories"));
+      setCategories(snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as Category)).sort((a, b) => a.name.localeCompare(b.name)));
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Không thể tải chủ đề."); }
   };
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) { setAuthorized(false); return; }
-      setUser(data.user);
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
-      const isAdmin = profile?.role === "admin";
+    return onAuthStateChanged(firebaseAuth, async (currentUser) => {
+      if (!currentUser) { setAuthorized(false); return; }
+      setUser(currentUser);
+      const profile = await getDoc(doc(firestore, "users", currentUser.uid));
+      const isAdmin = profile.data()?.role === "admin";
       setAuthorized(isAdmin);
       if (isAdmin) await Promise.all([loadPosts(), loadCategories()]);
     });
@@ -91,24 +98,25 @@ export function AdminDashboard() {
   const save = async (event: FormEvent) => {
     event.preventDefault();
     if (!user) return;
-    const supabase = createSupabaseBrowserClient();
     const payload = {
       ...form,
       slug: form.slug || form.title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
       cover_url: form.cover_url || null,
-      author_id: user.id,
+      author_id: user.uid,
       published_at: form.status === "published" ? editing?.published_at || new Date().toISOString() : null,
       updated_at: new Date().toISOString(),
     };
-    const result = editing ? await supabase.from("posts").update(payload).eq("id", editing.id) : await supabase.from("posts").insert(payload);
-    if (result.error) return setMessage(result.error.message);
-    setFormOpen(false); await loadPosts();
+    try {
+      if (editing) await updateDoc(doc(firestore, "posts", editing.id), payload);
+      else await addDoc(collection(firestore, "posts"), { ...payload, created_at: new Date().toISOString(), createdAt: serverTimestamp() });
+      setFormOpen(false); await loadPosts();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Không thể lưu bài viết."); }
   };
 
   const remove = async (post: AdminPost) => {
     if (!window.confirm(`Xóa bài “${post.title}”? Hành động này không thể hoàn tác.`)) return;
-    const { error } = await createSupabaseBrowserClient().from("posts").delete().eq("id", post.id);
-    if (error) setMessage(error.message); else await loadPosts();
+    try { await deleteDoc(doc(firestore, "posts", post.id)); await loadPosts(); }
+    catch (error) { setMessage(error instanceof Error ? error.message : "Không thể xóa bài viết."); }
   };
 
   const openCategoryCreate = () => {
@@ -127,24 +135,23 @@ export function AdminDashboard() {
 
   const saveCategory = async (event: FormEvent) => {
     event.preventDefault();
-    const supabase = createSupabaseBrowserClient();
     const payload = {
       ...categoryForm,
       slug: categoryForm.slug || categoryForm.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
       updated_at: new Date().toISOString(),
     };
-    const result = editingCategory
-      ? await supabase.from("categories").update(payload).eq("id", editingCategory.id)
-      : await supabase.from("categories").insert(payload);
-    if (result.error) return setMessage(result.error.message);
-    setCategoryFormOpen(false);
-    await Promise.all([loadCategories(), loadPosts()]);
+    try {
+      if (editingCategory) await updateDoc(doc(firestore, "categories", editingCategory.id), payload);
+      else await addDoc(collection(firestore, "categories"), { ...payload, created_at: new Date().toISOString(), createdAt: serverTimestamp() });
+      setCategoryFormOpen(false); await Promise.all([loadCategories(), loadPosts()]);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Không thể lưu chủ đề."); }
   };
 
   const removeCategory = async (category: Category) => {
     if (!window.confirm(`Xóa chủ đề “${category.name}”?`)) return;
-    const { error } = await createSupabaseBrowserClient().from("categories").delete().eq("id", category.id);
-    if (error) setMessage(error.message); else await loadCategories();
+    if (posts.some((post) => post.category === category.name)) return setMessage("Không thể xóa chủ đề đang được bài viết sử dụng.");
+    try { await deleteDoc(doc(firestore, "categories", category.id)); await loadCategories(); }
+    catch (error) { setMessage(error instanceof Error ? error.message : "Không thể xóa chủ đề."); }
   };
 
   if (authorized === null) return <main className="admin-access"><p>Đang kiểm tra quyền quản trị…</p></main>;
