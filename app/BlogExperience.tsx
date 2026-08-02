@@ -291,6 +291,7 @@ function AccountButton({ user, profile, onClick }: { user: User | null; profile:
     <button className="account-chip" onClick={onClick}>
       {profile?.avatar_url ? <img src={profile.avatar_url} alt="" /> : <span>{initial}</span>}
       <strong>Xin chào! {name}</strong>
+      <i aria-hidden="true">⌄</i>
     </button>
   );
 }
