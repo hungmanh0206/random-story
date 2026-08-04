@@ -259,7 +259,7 @@ export function BlogExperience() {
           {categories.map((item) => <button key={item} className={category === item ? "filter active" : "filter"} onClick={() => setCategory(item)}>{item}</button>)}
         </div>
         <label className="mobile-topic-filter"><span><small>Lọc theo chủ đề</small><strong>{category}</strong></span><select value={category} onChange={(event) => chooseCategory(event.target.value)} aria-label="Lọc bài viết theo chủ đề">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select><b>⌄</b></label>
-        {filtered.length ? <><div className="post-grid">{visiblePosts.map((post, index) => <PostCard key={post.id} post={post} index={(currentPage - 1) * postsPerPage + index} onOpen={() => openPost(post)} />)}</div>
+        {filtered.length ? <><div className="post-grid">{visiblePosts.map((post, index) => <PostCard key={post.id} post={post} index={(currentPage - 1) * postsPerPage + index} user={user} onRequireLogin={() => setLoginOpen(true)} onOpen={() => openPost(post)} />)}</div>
           {pageCount > 1 && <nav className="pagination" aria-label="Phân trang bài viết">
             <button onClick={() => changePage(currentPage - 1)} disabled={currentPage === 1}>← Trước</button>
             <div>{Array.from({ length: pageCount }, (_, index) => index + 1).map((page) => <button key={page} className={currentPage === page ? "active" : ""} aria-current={currentPage === page ? "page" : undefined} onClick={() => changePage(page)}>{page}</button>)}</div>
@@ -312,10 +312,11 @@ function ProfileMenu({ user, profile, onClose }: { user: User; profile: Profile 
   );
 }
 
-function PostCard({ post, index, onOpen }: { post: Post; index: number; onOpen: () => void }) {
+function PostCard({ post, index, user, onRequireLogin, onOpen }: { post: Post; index: number; user: User | null; onRequireLogin: () => void; onOpen: () => void }) {
   return (
     <article className={`post-card card-${index % 3}`}>
-      <button className="card-image" onClick={onOpen} aria-label={`Đọc ${post.title}`}><img src={post.image} alt="" /><span>{String(index + 1).padStart(2, "0")}</span></button>
+      <button className="card-image" onClick={onOpen} aria-label={`Đọc ${post.title}`}><img src={post.image} alt="" /></button>
+      <LikeButton post={post} user={user} onRequireLogin={onRequireLogin} variant="card" />
       <div className="post-meta"><span>{post.category}</span><span>{post.date} · {post.read}</span></div>
       <h3><button onClick={onOpen}>{post.title}</button></h3><p>{post.excerpt}</p>
       <button className="arrow-btn" onClick={onOpen} aria-label="Đọc bài viết">↗</button>
@@ -329,8 +330,6 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
 }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [comment, setComment] = useState("");
-  const [liked, setLiked] = useState(false);
-  const [reactionCount, setReactionCount] = useState(post.likes);
   const isDatabasePost = !post.id.startsWith("local-");
 
   const loadSocial = async () => {
@@ -341,9 +340,6 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
       return { id: item.id, content: data.content, created_at: data.createdAt?.toDate?.()?.toISOString?.() ?? new Date().toISOString(), profiles: { full_name: data.authorName ?? null, avatar_url: data.authorAvatar ?? null } } as Comment;
     }).sort((a, b) => a.created_at.localeCompare(b.created_at));
     setComments(rows);
-    if (user) {
-      setLiked((await getDoc(doc(firestore, "likes", `${post.id}_${user.uid}`))).exists());
-    }
   };
 
   useEffect(() => {
@@ -354,16 +350,6 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
     // loadSocial intentionally reloads whenever the active post or signed-in user changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id, user?.uid]);
-
-  const toggleLike = async () => {
-    if (!user || !isDatabasePost) return;
-    const likeRef = doc(firestore, "likes", `${post.id}_${user.uid}`);
-    if (liked) {
-      await deleteDoc(likeRef); setLiked(false); setReactionCount((value) => Math.max(0, value - 1));
-    } else {
-      await setDoc(likeRef, { postId: post.id, userId: user.uid, createdAt: serverTimestamp() }); setLiked(true); setReactionCount((value) => value + 1);
-    }
-  };
 
   const addComment = async (event: FormEvent) => {
     event.preventDefault();
@@ -388,7 +374,7 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
             : post.content.split(/\n\n+/).map((paragraph, index) => paragraph.startsWith("## ") ? <h2 key={index}>{paragraph.slice(3)}</h2> : <p className={index === 0 ? "lead" : ""} key={index}>{paragraph}</p>)}
           {user && isDatabasePost && (
             <>
-              <div className="article-actions"><button className={liked ? "liked" : ""} onClick={toggleLike}>{liked ? "♥" : "♡"} {reactionCount} lượt thích</button><button onClick={() => navigator.clipboard?.writeText(window.location.href)}>↗ Chia sẻ</button></div>
+              <div className="article-actions"><LikeButton post={post} user={user} variant="article" /><button onClick={() => navigator.clipboard?.writeText(window.location.href)}>↗ Chia sẻ</button></div>
               <section className="comments">
                 <form className="comment-form" onSubmit={addComment}><input required maxLength={500} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={`Viết bình luận, ${profile?.full_name || "bạn"}...`} /><button className="primary-btn">Gửi</button></form>
                 <div className="comment-list">{comments.map((item) => <article key={item.id}><strong>{item.profiles?.full_name || "Độc giả"}</strong><time>{new Date(item.created_at).toLocaleDateString("vi-VN")}</time><p>{item.content}</p></article>)}</div>
@@ -397,9 +383,54 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
           )}
         </div>
       </article>
-      <section className="related"><div className="section-heading"><div><span className="eyebrow">Đọc tiếp</span><h2>Có thể bạn sẽ thích</h2></div></div><div className="post-grid">{posts.filter((item) => item.id !== post.id).slice(0, 3).map((item, index) => <PostCard key={item.id} post={item} index={index} onOpen={() => onRelated(item)} />)}</div></section>
+      <section className="related"><div className="section-heading"><div><span className="eyebrow">Đọc tiếp</span><h2>Có thể bạn sẽ thích</h2></div></div><div className="post-grid">{posts.filter((item) => item.id !== post.id).slice(0, 3).map((item, index) => <PostCard key={item.id} post={item} index={index} user={user} onRequireLogin={() => undefined} onOpen={() => onRelated(item)} />)}</div></section>
       <Footer />
     </main>
+  );
+}
+
+function LikeButton({ post, user, variant, onRequireLogin }: { post: Post; user: User | null; variant: "card" | "article"; onRequireLogin?: () => void }) {
+  const [liked, setLiked] = useState(false);
+  const [count, setCount] = useState(post.likes);
+  const isDatabasePost = !post.id.startsWith("local-");
+
+  useEffect(() => {
+    if (!isDatabasePost) return;
+    getDocs(firestoreQuery(collection(firestore, "likes"), where("postId", "==", post.id))).then((snapshot) => setCount(snapshot.size));
+    if (user) getDoc(doc(firestore, "likes", `${post.id}_${user.uid}`)).then((snapshot) => setLiked(snapshot.exists()));
+    else setLiked(false);
+  }, [isDatabasePost, post.id, user]);
+
+  useEffect(() => {
+    const sync = (event: Event) => {
+      const detail = (event as CustomEvent<{ postId: string; liked: boolean; count: number }>).detail;
+      if (detail.postId === post.id) {
+        setLiked(detail.liked);
+        setCount(detail.count);
+      }
+    };
+    window.addEventListener("randomstory:like", sync);
+    return () => window.removeEventListener("randomstory:like", sync);
+  }, [post.id]);
+
+  const toggle = async () => {
+    if (!user) {
+      onRequireLogin?.();
+      return;
+    }
+    if (!isDatabasePost) return;
+    const nextLiked = !liked;
+    const nextCount = Math.max(0, count + (nextLiked ? 1 : -1));
+    const likeRef = doc(firestore, "likes", `${post.id}_${user.uid}`);
+    if (nextLiked) await setDoc(likeRef, { postId: post.id, userId: user.uid, createdAt: serverTimestamp() });
+    else await deleteDoc(likeRef);
+    window.dispatchEvent(new CustomEvent("randomstory:like", { detail: { postId: post.id, liked: nextLiked, count: nextCount } }));
+  };
+
+  return (
+    <button className={`like-button ${variant === "card" ? "card-like" : "article-like"} ${liked ? "liked" : ""}`} onClick={toggle} aria-label={`${liked ? "Bỏ thích" : "Thích"} bài viết ${post.title}`} aria-pressed={liked}>
+      <span aria-hidden="true">{liked ? "♥" : "♡"}</span><b>{count}</b>{variant === "article" && <em>lượt thích</em>}
+    </button>
   );
 }
 
