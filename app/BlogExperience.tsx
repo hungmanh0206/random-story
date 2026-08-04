@@ -129,16 +129,30 @@ export function BlogExperience() {
     };
 
     const unsubscribe = onAuthStateChanged(firebaseAuth, loadUser);
-    Promise.all([getDocs(firestoreQuery(collection(firestore, "posts"), where("status", "==", "published"))), getDocs(collection(firestore, "categories"))])
-      .then(([postSnapshot, categorySnapshot]) => {
+    Promise.all([getDocs(firestoreQuery(collection(firestore, "posts"), where("status", "==", "published"))), getDocs(collection(firestore, "categories")), getDocs(collection(firestore, "likes")).catch(() => null)])
+      .then(([postSnapshot, categorySnapshot, likeSnapshot]) => {
         if (!postSnapshot.empty) {
-          const rows = postSnapshot.docs.map((item) => mapPost({ id: item.id, ...item.data() }));
+          const likeCounts = (likeSnapshot?.docs ?? []).reduce<Record<string, number>>((counts, item) => {
+            const postId = String(item.data().postId ?? "");
+            if (postId) counts[postId] = (counts[postId] ?? 0) + 1;
+            return counts;
+          }, {});
+          const rows = postSnapshot.docs.map((item) => ({ ...mapPost({ id: item.id, ...item.data() }), likes: likeCounts[item.id] ?? 0 }));
           rows.sort((a, b) => b.date.localeCompare(a.date));
           setPosts(rows);
         }
         if (!categorySnapshot.empty) setCategories(["Tất cả", ...categorySnapshot.docs.map((item) => String(item.data().name)).sort()]);
       });
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const syncFeaturedLikes = (event: Event) => {
+      const detail = (event as CustomEvent<{ postId: string; count: number }>).detail;
+      setPosts((current) => current.map((post) => post.id === detail.postId ? { ...post, likes: detail.count } : post));
+    };
+    window.addEventListener("randomstory:like", syncFeaturedLikes);
+    return () => window.removeEventListener("randomstory:like", syncFeaturedLikes);
   }, []);
 
   useEffect(() => {
@@ -225,7 +239,7 @@ export function BlogExperience() {
     );
   }
 
-  const featured = posts[0];
+  const featured = posts.reduce((mostLiked, post) => post.likes > mostLiked.likes ? post : mostLiked, posts[0]);
   return (
     <main>
       <header className="site-header">
@@ -249,7 +263,7 @@ export function BlogExperience() {
       </header>
 
       <section id="top" className="hero">
-        <div className="hero-image" role="img" aria-label="Khung cảnh thiên nhiên yên bình" />
+        <div className="hero-image" style={{ backgroundImage: `url(${featured.image})` }} role="img" aria-label={`Ảnh bìa ${featured.title}`} />
         <div className="hero-overlay" />
         <div className="hero-copy">
           <span className="eyebrow light">Bài viết nổi bật · {featured.category}</span>
