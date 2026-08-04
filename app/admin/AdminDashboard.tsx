@@ -81,6 +81,10 @@ export function AdminDashboard() {
   const [postSearch, setPostSearch] = useState("");
   const [categorySearch, setCategorySearch] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
+  const [postCategory, setPostCategory] = useState("all");
+  const [postStatus, setPostStatus] = useState("all");
+  const [postSort, setPostSort] = useState("latest");
+  const [memberRole, setMemberRole] = useState("all");
 
   const loadPosts = async () => {
     try {
@@ -212,7 +216,15 @@ export function AdminDashboard() {
 
   const filteredPosts = posts.filter((post) => {
     const value = postSearch.trim().toLowerCase();
-    return !value || `${post.title} ${post.slug} ${post.category} ${post.status}`.toLowerCase().includes(value);
+    return (postCategory === "all" || post.category === postCategory)
+      && (postStatus === "all" || post.status === postStatus)
+      && (!value || `${post.title} ${post.slug} ${post.category} ${post.status}`.toLowerCase().includes(value));
+  }).sort((a, b) => {
+    if (postSort === "az") return a.title.localeCompare(b.title, "vi");
+    if (postSort === "za") return b.title.localeCompare(a.title, "vi");
+    const aTime = new Date(a.created_at || a.published_at || 0).getTime();
+    const bTime = new Date(b.created_at || b.published_at || 0).getTime();
+    return postSort === "oldest" ? aTime - bTime : bTime - aTime;
   });
 
   const filteredCategories = categories.filter((category) => {
@@ -222,7 +234,8 @@ export function AdminDashboard() {
 
   const filteredMembers = members.filter((member) => {
     const value = memberSearch.trim().toLowerCase();
-    return !value || `${member.full_name || ""} ${member.email} ${member.role}`.toLowerCase().includes(value);
+    return (memberRole === "all" || member.role === memberRole)
+      && (!value || `${member.full_name || ""} ${member.email} ${member.role}`.toLowerCase().includes(value));
   });
 
   if (authorized === null) return <main className="admin-access"><p>Đang kiểm tra quyền quản trị…</p></main>;
@@ -236,22 +249,22 @@ export function AdminDashboard() {
         {message && <p className="auth-message">{message}</p>}
         {activeTab === "posts" ? <><div className="stat-grid"><div><span>Tổng bài viết</span><strong>{posts.length}</strong><small>{posts.filter((p) => p.status === "published").length} đã xuất bản</small></div><div><span>Bản nháp</span><strong>{posts.filter((p) => p.status === "draft").length}</strong><small>Đang biên tập</small></div><div><span>Đã lưu trữ</span><strong>{posts.filter((p) => p.status === "archived").length}</strong><small>Không hiển thị</small></div></div>
         <div className="admin-card table-card admin-data-block">
-          <div className="card-title"><div><h2>Tất cả bài viết</h2><small>{filteredPosts.length}/{posts.length} bài viết</small></div><label className="admin-search"><span>⌕</span><input type="search" value={postSearch} onChange={(event) => setPostSearch(event.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết" /></label></div>
-          <table><thead><tr><th>Tiêu đề</th><th>Chủ đề</th><th>Trạng thái</th><th>Cập nhật</th><th>Thao tác</th></tr></thead><tbody>
-            {filteredPosts.map((post) => <tr key={post.id}><td data-label="Tiêu đề"><strong>{post.title}</strong><small className="admin-slug">/{post.slug}</small></td><td data-label="Chủ đề">{post.category}</td><td data-label="Trạng thái"><span className="status">{post.status === "published" ? "Đã xuất bản" : post.status === "draft" ? "Bản nháp" : "Lưu trữ"}</span></td><td data-label="Cập nhật">{new Date(post.created_at).toLocaleDateString("vi-VN")}</td><td data-label="Thao tác"><div className="admin-actions"><button onClick={() => openEdit(post)}>Sửa</button><button className="danger-btn" onClick={() => remove(post)}>Xóa</button></div></td></tr>)}
-            {!filteredPosts.length && <tr className="admin-no-results"><td colSpan={5}>Không tìm thấy bài viết phù hợp.</td></tr>}
+          <div className="card-title"><div><h2>Tất cả bài viết</h2><small>{filteredPosts.length}/{posts.length} bài viết</small></div><div className="admin-controls"><label className="admin-search"><span>⌕</span><input type="search" value={postSearch} onChange={(event) => setPostSearch(event.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết" /></label><label className="admin-select"><select value={postCategory} onChange={(e) => setPostCategory(e.target.value)} aria-label="Lọc chủ đề"><option value="all">Mọi chủ đề</option>{categories.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select><span>⌄</span></label><label className="admin-select"><select value={postStatus} onChange={(e) => setPostStatus(e.target.value)} aria-label="Lọc trạng thái"><option value="all">Mọi trạng thái</option><option value="published">Đã xuất bản</option><option value="draft">Bản nháp</option><option value="archived">Lưu trữ</option></select><span>⌄</span></label><label className="admin-select"><select value={postSort} onChange={(e) => setPostSort(e.target.value)} aria-label="Sắp xếp bài viết"><option value="latest">Mới nhất</option><option value="oldest">Cũ nhất</option><option value="az">A–Z</option><option value="za">Z–A</option></select><span>⌄</span></label></div></div>
+          <table><thead><tr><th>STT</th><th>Tiêu đề</th><th>Chủ đề</th><th>Trạng thái</th><th>Cập nhật</th><th>Thao tác</th></tr></thead><tbody>
+            {filteredPosts.map((post, index) => <tr key={post.id}><td data-label="STT">{index + 1}</td><td data-label="Tiêu đề"><strong>{post.title}</strong><small className="admin-slug">/{post.slug}</small></td><td data-label="Chủ đề">{post.category}</td><td data-label="Trạng thái"><span className="status">{post.status === "published" ? "Đã xuất bản" : post.status === "draft" ? "Bản nháp" : "Lưu trữ"}</span></td><td data-label="Cập nhật">{new Date(post.created_at).toLocaleDateString("vi-VN")}</td><td data-label="Thao tác"><div className="admin-actions"><button onClick={() => openEdit(post)}>Sửa</button><button className="danger-btn" onClick={() => remove(post)}>Xóa</button></div></td></tr>)}
+            {!filteredPosts.length && <tr className="admin-no-results"><td colSpan={6}>Không tìm thấy bài viết phù hợp.</td></tr>}
           </tbody></table>
         </div></> : activeTab === "categories" ? <div className="admin-card table-card admin-data-block">
           <div className="card-title"><div><h2>Tất cả chủ đề</h2><small>{filteredCategories.length}/{categories.length} chủ đề</small></div><label className="admin-search"><span>⌕</span><input type="search" value={categorySearch} onChange={(event) => setCategorySearch(event.target.value)} placeholder="Tìm chủ đề..." aria-label="Tìm chủ đề" /></label></div>
-          <table><thead><tr><th>Tên chủ đề</th><th>Slug</th><th>Mô tả</th><th>Thao tác</th></tr></thead><tbody>
-            {filteredCategories.map((category) => <tr key={category.id}><td data-label="Tên chủ đề"><strong>{category.name}</strong></td><td data-label="Slug">/{category.slug}</td><td data-label="Mô tả">{category.description || "—"}</td><td data-label="Thao tác"><div className="admin-actions"><button onClick={() => openCategoryEdit(category)}>Sửa</button><button className="danger-btn" onClick={() => removeCategory(category)}>Xóa</button></div></td></tr>)}
-            {!filteredCategories.length && <tr className="admin-no-results"><td colSpan={4}>Không tìm thấy chủ đề phù hợp.</td></tr>}
+          <table><thead><tr><th>STT</th><th>Tên chủ đề</th><th>Slug</th><th>Mô tả</th><th>Thao tác</th></tr></thead><tbody>
+            {filteredCategories.map((category, index) => <tr key={category.id}><td data-label="STT">{index + 1}</td><td data-label="Tên chủ đề"><strong>{category.name}</strong></td><td data-label="Slug">/{category.slug}</td><td data-label="Mô tả">{category.description || "—"}</td><td data-label="Thao tác"><div className="admin-actions"><button onClick={() => openCategoryEdit(category)}>Sửa</button><button className="danger-btn" onClick={() => removeCategory(category)}>Xóa</button></div></td></tr>)}
+            {!filteredCategories.length && <tr className="admin-no-results"><td colSpan={5}>Không tìm thấy chủ đề phù hợp.</td></tr>}
           </tbody></table>
         </div> : <div className="admin-card table-card admin-data-block">
-          <div className="card-title"><div><h2>Tất cả thành viên</h2><small>{filteredMembers.length}/{members.length} thành viên</small></div><label className="admin-search"><span>⌕</span><input type="search" value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Tìm thành viên..." aria-label="Tìm thành viên" /></label></div>
-          <table><thead><tr><th>Thành viên</th><th>Email</th><th>Vai trò</th></tr></thead><tbody>
-            {filteredMembers.map((member) => <tr key={member.id}><td data-label="Thành viên"><strong>{member.full_name || "Chưa cập nhật tên"}</strong>{member.id === user?.uid && <small className="admin-slug">Tài khoản của bạn</small>}</td><td data-label="Email">{member.email}</td><td data-label="Vai trò"><span className="status">{member.role === "admin" ? "Quản trị viên" : "Thành viên"}</span></td></tr>)}
-            {!filteredMembers.length && <tr className="admin-no-results"><td colSpan={3}>Không tìm thấy thành viên phù hợp.</td></tr>}
+          <div className="card-title"><div><h2>Tất cả thành viên</h2><small>{filteredMembers.length}/{members.length} thành viên</small></div><div className="admin-controls"><label className="admin-search"><span>⌕</span><input type="search" value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Tìm thành viên..." aria-label="Tìm thành viên" /></label><label className="admin-select"><select value={memberRole} onChange={(e) => setMemberRole(e.target.value)} aria-label="Lọc vai trò"><option value="all">Mọi vai trò</option><option value="admin">Quản trị viên</option><option value="reader">Thành viên</option></select><span>⌄</span></label></div></div>
+          <table><thead><tr><th>STT</th><th>Thành viên</th><th>Email</th><th>Vai trò</th></tr></thead><tbody>
+            {filteredMembers.map((member, index) => <tr key={member.id}><td data-label="STT">{index + 1}</td><td data-label="Thành viên"><strong>{member.full_name || "Chưa cập nhật tên"}</strong>{member.id === user?.uid && <small className="admin-slug">Tài khoản của bạn</small>}</td><td data-label="Email">{member.email}</td><td data-label="Vai trò"><span className="status">{member.role === "admin" ? "Quản trị viên" : "Thành viên"}</span></td></tr>)}
+            {!filteredMembers.length && <tr className="admin-no-results"><td colSpan={4}>Không tìm thấy thành viên phù hợp.</td></tr>}
           </tbody></table>
         </div>}
       </section>

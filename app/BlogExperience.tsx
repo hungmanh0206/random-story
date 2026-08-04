@@ -17,6 +17,7 @@ export type Post = {
   date: string;
   read: string;
   likes: number;
+  sortDate: number;
   featured?: boolean;
 };
 
@@ -47,6 +48,7 @@ const fallbackPosts: Post[] = [
     date: "24.07.2026",
     read: "8 phút đọc",
     likes: 128,
+    sortDate: new Date("2026-07-24").getTime(),
     featured: true,
   },
   {
@@ -60,6 +62,7 @@ const fallbackPosts: Post[] = [
     date: "20.07.2026",
     read: "6 phút đọc",
     likes: 96,
+    sortDate: new Date("2026-07-20").getTime(),
   },
   {
     id: "local-3",
@@ -72,6 +75,7 @@ const fallbackPosts: Post[] = [
     date: "17.07.2026",
     read: "5 phút đọc",
     likes: 74,
+    sortDate: new Date("2026-07-17").getTime(),
   },
 ];
 
@@ -94,6 +98,7 @@ function mapPost(row: Record<string, unknown>): Post {
     date: published.toLocaleDateString("vi-VN"),
     read: `${Math.max(1, Math.ceil(content.split(/\s+/).length / 220))} phút đọc`,
     likes: Number(row.likeCount ?? row.like_count ?? 0),
+    sortDate: published.getTime(),
   };
 }
 
@@ -101,6 +106,7 @@ export function BlogExperience() {
   const [category, setCategory] = useState("Tất cả");
   const [categories, setCategories] = useState(fallbackCategories);
   const [query, setQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState("latest");
   const [currentPage, setCurrentPage] = useState(1);
   const [posts, setPosts] = useState<Post[]>(fallbackPosts);
   const [active, setActive] = useState<Post | null>(null);
@@ -169,14 +175,18 @@ export function BlogExperience() {
     return posts.filter((post) => {
       const matchesCategory = category === "Tất cả" || post.category === category;
       return matchesCategory && (!value || `${post.title} ${post.excerpt} ${post.category}`.toLowerCase().includes(value));
+    }).sort((a, b) => {
+      if (sortOrder === "az") return a.title.localeCompare(b.title, "vi");
+      if (sortOrder === "za") return b.title.localeCompare(a.title, "vi");
+      return sortOrder === "oldest" ? a.sortDate - b.sortDate : b.sortDate - a.sortDate;
     });
-  }, [category, posts, query]);
+  }, [category, posts, query, sortOrder]);
 
   const postsPerPage = 6;
   const pageCount = Math.max(1, Math.ceil(filtered.length / postsPerPage));
   const visiblePosts = filtered.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
 
-  useEffect(() => setCurrentPage(1), [category, query]);
+  useEffect(() => setCurrentPage(1), [category, query, sortOrder]);
   useEffect(() => {
     if (currentPage > pageCount) setCurrentPage(pageCount);
   }, [currentPage, pageCount]);
@@ -259,6 +269,7 @@ export function BlogExperience() {
           {categories.map((item) => <button key={item} className={category === item ? "filter active" : "filter"} onClick={() => setCategory(item)}>{item}</button>)}
         </div>
         <label className="mobile-topic-filter"><span><small>Lọc theo chủ đề</small><strong>{category}</strong></span><select value={category} onChange={(event) => chooseCategory(event.target.value)} aria-label="Lọc bài viết theo chủ đề">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select><b>⌄</b></label>
+        <label className="story-sort"><span>⇅</span><select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} aria-label="Sắp xếp bài viết"><option value="latest">Mới nhất</option><option value="oldest">Cũ nhất</option><option value="az">A–Z</option><option value="za">Z–A</option></select><b>⌄</b></label>
         {filtered.length ? <><div className="post-grid">{visiblePosts.map((post, index) => <PostCard key={post.id} post={post} index={(currentPage - 1) * postsPerPage + index} user={user} onRequireLogin={() => setLoginOpen(true)} onOpen={() => openPost(post)} />)}</div>
           {pageCount > 1 && <nav className="pagination" aria-label="Phân trang bài viết">
             <button onClick={() => changePage(currentPage - 1)} disabled={currentPage === 1}>← Trước</button>
