@@ -149,3 +149,7 @@ footer>div:last-of-type a{line-height:1.5}
 
 @media(max-width:900px){.admin-data-block .card-title{align-items:flex-start;flex-direction:column}.admin-controls{width:100%;justify-content:flex-start}.admin-search{width:min(280px,100%)}.admin-select{flex:1;min-width:130px}.admin-select select{width:100%}}
 @media(max-width:620px){.story-sort{width:100%;height:48px;margin:-25px 0 34px;padding-left:16px;border-radius:14px;background:linear-gradient(135deg,#fff,#f8f2f9)}.story-sort select{flex:1}.admin-controls{display:grid;grid-template-columns:1fr 1fr}.admin-search{grid-column:1/-1;width:100%}.admin-select{min-width:0}.admin-data-block td:first-child{width:100%}}
+
+/* Keep homepage topic and sort controls on one visual row */
+.story-filter-bar{display:flex;align-items:center;gap:18px;margin:35px 0 45px}.story-filter-bar .filter-row{flex:1;margin:0}.story-filter-bar .story-sort{flex:0 0 auto;margin:0}
+@media(max-width:620px){.story-filter-bar{display:grid;gap:10px;margin:26px 0 38px}.story-filter-bar .filter-row{display:none}.story-filter-bar .mobile-topic-filter,.story-filter-bar .story-sort{margin:0}}

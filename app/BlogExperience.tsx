@@ -265,11 +265,13 @@ export function BlogExperience() {
           <div><span className="eyebrow">Mới trên Random Story</span><h2>Những câu chuyện gần đây</h2></div>
           <p>Từ những dấu mốc lịch sử đến các khám phá khoa học và những điều kỳ thú trong cuộc sống — mỗi bài viết là một hành trình mở rộng hiểu biết.</p>
         </div>
-        <div id="topics" className="filter-row" role="group" aria-label="Lọc theo chủ đề">
-          {categories.map((item) => <button key={item} className={category === item ? "filter active" : "filter"} onClick={() => setCategory(item)}>{item}</button>)}
+        <div className="story-filter-bar">
+          <div id="topics" className="filter-row" role="group" aria-label="Lọc theo chủ đề">
+            {categories.map((item) => <button key={item} className={category === item ? "filter active" : "filter"} onClick={() => setCategory(item)}>{item}</button>)}
+          </div>
+          <label className="mobile-topic-filter"><span><small>Lọc theo chủ đề</small><strong>{category}</strong></span><select value={category} onChange={(event) => chooseCategory(event.target.value)} aria-label="Lọc bài viết theo chủ đề">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select><b>⌄</b></label>
+          <label className="story-sort"><span>⇅</span><select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} aria-label="Sắp xếp bài viết"><option value="latest">Mới nhất</option><option value="oldest">Cũ nhất</option><option value="az">A–Z</option><option value="za">Z–A</option></select><b>⌄</b></label>
         </div>
-        <label className="mobile-topic-filter"><span><small>Lọc theo chủ đề</small><strong>{category}</strong></span><select value={category} onChange={(event) => chooseCategory(event.target.value)} aria-label="Lọc bài viết theo chủ đề">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select><b>⌄</b></label>
-        <label className="story-sort"><span>⇅</span><select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} aria-label="Sắp xếp bài viết"><option value="latest">Mới nhất</option><option value="oldest">Cũ nhất</option><option value="az">A–Z</option><option value="za">Z–A</option></select><b>⌄</b></label>
         {filtered.length ? <><div className="post-grid">{visiblePosts.map((post, index) => <PostCard key={post.id} post={post} index={(currentPage - 1) * postsPerPage + index} user={user} onRequireLogin={() => setLoginOpen(true)} onOpen={() => openPost(post)} />)}</div>
           {pageCount > 1 && <nav className="pagination" aria-label="Phân trang bài viết">
             <button onClick={() => changePage(currentPage - 1)} disabled={currentPage === 1}>← Trước</button>
