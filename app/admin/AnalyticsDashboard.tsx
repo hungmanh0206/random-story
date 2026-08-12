@@ -72,9 +72,21 @@ export function AnalyticsDashboard({ posts, members }: { posts: DashboardPost[];
     return { labels, values };
   }, [range, rangedViews]);
 
-  const categoryCounts = rangedViews.reduce<Record<string, number>>((result, view) => ({ ...result, [view.category]: (result[view.category] ?? 0) + 1 }), {});
-  const categories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);
-  const postCounts = rangedViews.reduce<Record<string, { title: string; count: number }>>((result, view) => ({ ...result, [view.postId]: { title: view.title, count: (result[view.postId]?.count ?? 0) + 1 } }), {});
+  const postById = new Map(posts.map((post) => [post.id, post]));
+  const knownCategories = Array.from(new Set(posts.filter((post) => post.status === "published").map((post) => post.category))).sort((a, b) => a.localeCompare(b, "vi"));
+  const categoryCounts = rangedViews.reduce<Record<string, number>>((result, view) => {
+    const currentCategory = postById.get(view.postId)?.category;
+    if (!currentCategory) return result;
+    result[currentCategory] = (result[currentCategory] ?? 0) + 1;
+    return result;
+  }, Object.fromEntries(knownCategories.map((category) => [category, 0])));
+  const categories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "vi"));
+  const postCounts = rangedViews.reduce<Record<string, { title: string; count: number }>>((result, view) => {
+    const currentPost = postById.get(view.postId);
+    if (!currentPost) return result;
+    result[view.postId] = { title: currentPost.title, count: (result[view.postId]?.count ?? 0) + 1 };
+    return result;
+  }, {});
   const topPosts = Object.values(postCounts).sort((a, b) => b.count - a.count).slice(0, 10);
   const productivity = members.map((member) => ({ name: member.full_name || member.email, count: posts.filter((post) => post.status === "published" && post.author_id === member.id).length })).sort((a, b) => b.count - a.count).slice(0, 10);
   const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } } } as const;
