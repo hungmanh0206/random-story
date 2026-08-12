@@ -7,6 +7,7 @@ import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, u
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { firebaseAuth, firestore } from "../../lib/firebase";
+import { AnalyticsDashboard } from "./AnalyticsDashboard";
 
 const TinyEditor = dynamic(() => import("./TinyEditor").then((module) => module.TinyEditor), {
   ssr: false,
@@ -24,6 +25,7 @@ type AdminPost = {
   status: "draft" | "published" | "archived";
   published_at: string | null;
   created_at: string;
+  author_id?: string;
 };
 
 type PostForm = {
@@ -67,7 +69,7 @@ const createSlug = (value: string) => value
 export function AdminDashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [authorized, setAuthorized] = useState<boolean | null>(null);
-  const [activeTab, setActiveTab] = useState<"posts" | "categories" | "members">("posts");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "posts" | "categories" | "members">("dashboard");
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -243,11 +245,11 @@ export function AdminDashboard() {
 
   return (
     <div className="admin-shell">
-      <aside><Link className="brand admin-brand" href="/"><picture><source media="(max-width: 620px)" srcSet="/icon.jpg" /><img src="/logo-original-font.png" alt="random story." /></picture></Link><p>Trang quản trị</p><nav><button className={activeTab === "posts" ? "active" : ""} onClick={() => setActiveTab("posts")}>Bài viết</button><button className={activeTab === "categories" ? "active" : ""} onClick={() => setActiveTab("categories")}>Chủ đề</button><button className={activeTab === "members" ? "active" : ""} onClick={() => setActiveTab("members")}>Thành viên</button></nav><Link className="admin-exit" href="/">← Xem trang blog</Link></aside>
+      <aside><Link className="brand admin-brand" href="/"><picture><source media="(max-width: 620px)" srcSet="/icon.jpg" /><img src="/logo-original-font.png" alt="random story." /></picture></Link><p>Trang quản trị</p><nav><button className={activeTab === "dashboard" ? "active" : ""} onClick={() => setActiveTab("dashboard")}>Tổng quan</button><button className={activeTab === "posts" ? "active" : ""} onClick={() => setActiveTab("posts")}>Bài viết</button><button className={activeTab === "categories" ? "active" : ""} onClick={() => setActiveTab("categories")}>Chủ đề</button><button className={activeTab === "members" ? "active" : ""} onClick={() => setActiveTab("members")}>Thành viên</button></nav><Link className="admin-exit" href="/">← Xem trang blog</Link></aside>
       <section className="admin-main">
-        <header><div><span className="eyebrow">Random Story CMS</span><h1>{activeTab === "posts" ? "Quản lý bài viết" : activeTab === "categories" ? "Quản lý chủ đề" : "Quản lý thành viên"}</h1></div>{activeTab !== "members" && <button className="primary-btn" onClick={activeTab === "posts" ? openCreate : openCategoryCreate}>+ {activeTab === "posts" ? "Bài viết mới" : "Chủ đề mới"}</button>}</header>
+        <header><div><span className="eyebrow">Random Story CMS</span><h1>{activeTab === "dashboard" ? "Tổng quan thống kê" : activeTab === "posts" ? "Quản lý bài viết" : activeTab === "categories" ? "Quản lý chủ đề" : "Quản lý thành viên"}</h1></div>{(activeTab === "posts" || activeTab === "categories") && <button className="primary-btn" onClick={activeTab === "posts" ? openCreate : openCategoryCreate}>+ {activeTab === "posts" ? "Bài viết mới" : "Chủ đề mới"}</button>}</header>
         {message && <p className="auth-message">{message}</p>}
-        {activeTab === "posts" ? <><div className="stat-grid"><div><span>Tổng bài viết</span><strong>{posts.length}</strong><small>{posts.filter((p) => p.status === "published").length} đã xuất bản</small></div><div><span>Bản nháp</span><strong>{posts.filter((p) => p.status === "draft").length}</strong><small>Đang biên tập</small></div><div><span>Đã lưu trữ</span><strong>{posts.filter((p) => p.status === "archived").length}</strong><small>Không hiển thị</small></div></div>
+        {activeTab === "dashboard" ? <AnalyticsDashboard posts={posts} members={members} /> : activeTab === "posts" ? <><div className="stat-grid"><div><span>Tổng bài viết</span><strong>{posts.length}</strong><small>{posts.filter((p) => p.status === "published").length} đã xuất bản</small></div><div><span>Bản nháp</span><strong>{posts.filter((p) => p.status === "draft").length}</strong><small>Đang biên tập</small></div><div><span>Đã lưu trữ</span><strong>{posts.filter((p) => p.status === "archived").length}</strong><small>Không hiển thị</small></div></div>
         <div className="admin-card table-card admin-data-block">
           <div className="card-title"><div><h2>Tất cả bài viết</h2><small>{filteredPosts.length}/{posts.length} bài viết</small></div><div className="admin-controls"><label className="admin-search"><span>⌕</span><input type="search" value={postSearch} onChange={(event) => setPostSearch(event.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết" /></label><label className="admin-select"><select value={postCategory} onChange={(e) => setPostCategory(e.target.value)} aria-label="Lọc chủ đề"><option value="all">Mọi chủ đề</option>{categories.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}</select><span>⌄</span></label><label className="admin-select"><select value={postStatus} onChange={(e) => setPostStatus(e.target.value)} aria-label="Lọc trạng thái"><option value="all">Mọi trạng thái</option><option value="published">Đã xuất bản</option><option value="draft">Bản nháp</option><option value="archived">Lưu trữ</option></select><span>⌄</span></label><label className="admin-select"><select value={postSort} onChange={(e) => setPostSort(e.target.value)} aria-label="Sắp xếp bài viết"><option value="latest">Mới nhất</option><option value="oldest">Cũ nhất</option><option value="az">A–Z</option><option value="za">Z–A</option></select><span>⌄</span></label></div></div>
           <table><thead><tr><th>STT</th><th>Tiêu đề</th><th>Chủ đề</th><th>Trạng thái</th><th>Cập nhật</th><th>Thao tác</th></tr></thead><tbody>

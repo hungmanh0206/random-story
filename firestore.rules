@@ -42,5 +42,8 @@ service cloud.firestore {
       allow create: if true;
       allow read, update, delete: if isAdmin();
     }
+
+    match /analytics_views/{viewId} { allow read: if isAdmin(); }
+    match /analytics_presence/{sessionId} { allow read, delete: if isAdmin(); }
   }
 }

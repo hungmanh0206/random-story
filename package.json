@@ -17,11 +17,13 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",
     "@tinymce/tinymce-react": "^6.3.0",
+    "chart.js": "^4.5.1",
     "drizzle-orm": "0.45.2",
     "firebase": "^12.17.0",
     "firebase-admin": "^14.2.0",
     "next": "16.2.6",
     "react": "19.2.6",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "19.2.6",
     "tinymce": "^8.8.2"
   },

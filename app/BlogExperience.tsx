@@ -165,6 +165,25 @@ export function BlogExperience() {
     return () => window.removeEventListener("popstate", syncPostFromUrl);
   }, [posts]);
 
+  useEffect(() => {
+    const sessionId = sessionStorage.getItem("randomstory_session") || crypto.randomUUID();
+    sessionStorage.setItem("randomstory_session", sessionId);
+    const heartbeat = () => fetch("/api/analytics/track", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ type: "presence", sessionId, userId: user?.uid ?? null }), keepalive: true }).catch(() => undefined);
+    heartbeat();
+    const timer = window.setInterval(heartbeat, 60_000);
+    return () => window.clearInterval(timer);
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (!active || active.id.startsWith("local-")) return;
+    const viewKey = `randomstory_viewed_${active.id}`;
+    if (sessionStorage.getItem(viewKey)) return;
+    sessionStorage.setItem(viewKey, "1");
+    fetch("/api/analytics/track", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ type: "view", sessionId: sessionStorage.getItem("randomstory_session"), postId: active.id, title: active.title, category: active.category }), keepalive: true })
+      .then((response) => { if (!response.ok) sessionStorage.removeItem(viewKey); })
+      .catch(() => sessionStorage.removeItem(viewKey));
+  }, [active]);
+
   const openPost = (post: Post) => {
     setActive(post);
     window.history.pushState({}, "", `/?post=${encodeURIComponent(post.slug)}`);
