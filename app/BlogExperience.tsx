@@ -20,6 +20,8 @@ export type Post = {
   likes: number;
   sortDate: number;
   featured?: boolean;
+  audioMaleUrl?: string;
+  audioFemaleUrl?: string;
 };
 
 type Profile = {
@@ -102,6 +104,8 @@ function mapPost(row: Record<string, unknown>): Post {
     read: `${Math.max(1, Math.ceil(content.split(/\s+/).length / 220))} phút đọc`,
     likes: Number(row.likeCount ?? row.like_count ?? 0),
     sortDate: published.getTime(),
+    audioMaleUrl: String(row.audioMaleUrl ?? row.audio_male_url ?? "") || undefined,
+    audioFemaleUrl: String(row.audioFemaleUrl ?? row.audio_female_url ?? "") || undefined,
   };
 }
 
@@ -504,11 +508,12 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
       <article>
         <div className="article-intro"><span className="eyebrow">{post.category}</span><h1>{post.title}</h1><p>{post.excerpt}</p><div className="author-row"><div className="avatar">HM</div><div><strong>Hùng Mạnh</strong><span>{post.date} · {post.read}</span></div></div></div>
         <img className="article-cover" src={post.image} alt="" />
+        <div className="article-audio-shell"><TextToSpeech title={post.title} excerpt={post.excerpt} content={post.content} audioMaleUrl={post.audioMaleUrl} audioFemaleUrl={post.audioFemaleUrl} /></div>
         <div className="article-body">
           {/<[a-z][\s\S]*>/i.test(post.content)
             ? <div className="rich-article-content" dangerouslySetInnerHTML={{ __html: post.content }} />
             : post.content.split(/\n\n+/).map((paragraph, index) => paragraph.startsWith("## ") ? <h2 key={index}>{paragraph.slice(3)}</h2> : <p className={index === 0 ? "lead" : ""} key={index}>{paragraph}</p>)}
-          <div className="article-actions">{user && isDatabasePost ? <LikeButton post={post} user={user} variant="article" /> : <span className="article-listen-label">Tiện ích bài viết</span>}<div className="article-action-tools"><TextToSpeech title={post.title} excerpt={post.excerpt} content={post.content} /><ShareMenu /></div></div>
+          <div className="article-actions">{user && isDatabasePost ? <LikeButton post={post} user={user} variant="article" /> : <span className="article-listen-label">Tiện ích bài viết</span>}<div className="article-action-tools"><ShareMenu /></div></div>
           {user && isDatabasePost && (
               <section className="comments">
                 <div className="comments-heading"><h2>Bình luận</h2><p>Chia sẻ suy nghĩ của bạn về câu chuyện này.</p></div>
@@ -564,18 +569,19 @@ function ShareMenu() {
   </div>;
 }
 
-function TextToSpeech({ title, excerpt, content }: { title: string; excerpt: string; content: string }) {
+function TextToSpeech({ title, excerpt, content, audioMaleUrl, audioFemaleUrl }: { title: string; excerpt: string; content: string; audioMaleUrl?: string; audioFemaleUrl?: string }) {
   const [supported, setSupported] = useState(false);
   const [open, setOpen] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [paused, setPaused] = useState(false);
   const [rate, setRate] = useState(1);
-  const [voiceGender, setVoiceGender] = useState("female");
-  const [voiceRegion, setVoiceRegion] = useState("north");
+  const [voiceGender, setVoiceGender] = useState(audioFemaleUrl || !audioMaleUrl ? "female" : "male");
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [progress, setProgress] = useState(0);
   const chunksRef = useRef<string[]>([]);
   const chunkIndexRef = useRef(0);
+  const recordedAudioUrl = voiceGender === "male" ? audioMaleUrl : audioFemaleUrl;
+  const hasRecordedAudio = Boolean(audioMaleUrl || audioFemaleUrl);
 
   const stop = () => {
     window.speechSynthesis?.cancel();
@@ -595,8 +601,7 @@ function TextToSpeech({ title, excerpt, content }: { title: string; excerpt: str
     const utterance = new SpeechSynthesisUtterance(chunks[index]);
     utterance.lang = "vi-VN"; utterance.rate = speed;
     const genderTerms = voiceGender === "male" ? ["namminh", "male", "man", "nam"] : ["hoaimy", "female", "woman", "nữ", "linh"];
-    const regionTerms = voiceRegion === "north" ? ["hanoi", "north", "bắc"] : voiceRegion === "central" ? ["hue", "central", "trung"] : ["saigon", "south", "nam"];
-    const vietnameseVoice = voices.find((voice) => regionTerms.some((term) => voice.name.toLowerCase().includes(term)) && genderTerms.some((term) => voice.name.toLowerCase().includes(term))) || voices.find((voice) => genderTerms.some((term) => voice.name.toLowerCase().includes(term))) || voices[0];
+    const vietnameseVoice = voices.find((voice) => genderTerms.some((term) => voice.name.toLowerCase().includes(term))) || voices[0];
     if (vietnameseVoice) utterance.voice = vietnameseVoice;
     utterance.onstart = () => { setSpeaking(true); setPaused(false); setProgress(Math.round(index / chunks.length * 100)); };
     utterance.onend = () => speakChunk(index + 1, chunks, speed);
@@ -619,16 +624,16 @@ function TextToSpeech({ title, excerpt, content }: { title: string; excerpt: str
     if (speaking || paused) { window.speechSynthesis.cancel(); setSpeaking(false); setPaused(false); setProgress(0); }
   };
 
-  const changeVoice = (gender: string, region: string) => {
-    setVoiceGender(gender); setVoiceRegion(region);
+  const changeVoice = (gender: string) => {
+    setVoiceGender(gender);
     if (speaking || paused) stop();
   };
 
-  if (!supported) return null;
-  return <div className="tts-wrap">
-    <button className="tts-trigger" aria-expanded={open} onClick={() => { setOpen((value) => !value); if (open) stop(); }}><StageIcon name="book-open" /> Nghe bài viết</button>
-    {open && <div className="tts-player"><div className="tts-player-controls"><button className="tts-play" onClick={play}>{speaking && !paused ? "Tạm dừng" : paused ? "Tiếp tục" : "Phát"}</button><button className="tts-stop" onClick={stop} disabled={!speaking && !paused}>Dừng</button></div><div className="tts-settings"><label>Giọng<select value={voiceGender} onChange={(event) => changeVoice(event.target.value, voiceRegion)}><option value="female">Nữ</option><option value="male">Nam</option></select></label><label>Vùng miền<select value={voiceRegion} onChange={(event) => changeVoice(voiceGender, event.target.value)}><option value="north">Miền Bắc</option><option value="central">Miền Trung</option><option value="south">Miền Nam</option></select></label><label>Tốc độ<select value={rate} onChange={(event) => changeRate(Number(event.target.value))}><option value={0.8}>0.8×</option><option value={1}>1×</option><option value={1.2}>1.2×</option><option value={1.5}>1.5×</option></select></label></div><small className="tts-voice-note">{voices.length ? `${voices.length} giọng tiếng Việt khả dụng` : "Dùng giọng tiếng Việt mặc định của thiết bị"}</small><div className="tts-progress"><i style={{ width: `${progress}%` }} /><span>{progress}%</span></div></div>}
-  </div>;
+  if (!supported && !hasRecordedAudio) return null;
+  return <section className={`tts-wrap ${open ? "open" : ""}`}>
+    <button className="tts-trigger" aria-expanded={open} onClick={() => { setOpen((value) => !value); if (open) stop(); }}><span className="tts-cover-icon"><StageIcon name="book-open" /></span><span className="tts-trigger-copy"><strong>Nghe bài viết</strong><small>{open ? "Thu gọn trình phát" : "Mở trình phát âm thanh"}</small></span><StageIcon name="chevron-down" /></button>
+    <div className="tts-expand" aria-hidden={!open}><div className="tts-player">{hasRecordedAudio ? <><div className="tts-settings tts-recorded-settings"><label>Giọng đọc<select value={voiceGender} onChange={(event) => changeVoice(event.target.value)}><option value="female" disabled={!audioFemaleUrl}>Nữ{!audioFemaleUrl ? " (chưa có)" : ""}</option><option value="male" disabled={!audioMaleUrl}>Nam{!audioMaleUrl ? " (chưa có)" : ""}</option></select></label></div>{recordedAudioUrl ? <audio className="tts-native-audio" key={recordedAudioUrl} controls preload="metadata" src={recordedAudioUrl}>Trình duyệt không hỗ trợ audio.</audio> : <p className="tts-voice-note">Giọng này chưa có file audio.</p>}<small className="tts-voice-note">Bản thu âm thanh của Random Story</small></> : <><div className="tts-transport"><button className="tts-play" onClick={play}><span className={speaking && !paused ? "pause-symbol" : "play-symbol"} />{speaking && !paused ? "Tạm dừng" : paused ? "Tiếp tục" : "Phát bài viết"}</button><button className="tts-stop" onClick={stop} disabled={!speaking && !paused}>Dừng</button><div className="tts-progress"><i style={{ width: `${progress}%` }} /><span>{progress}%</span></div></div><div className="tts-settings"><label>Giọng đọc<select value={voiceGender} onChange={(event) => changeVoice(event.target.value)}><option value="female">Nữ</option><option value="male">Nam</option></select></label><label>Tốc độ<select value={rate} onChange={(event) => changeRate(Number(event.target.value))}><option value={0.8}>0.8×</option><option value={1}>1×</option><option value={1.2}>1.2×</option><option value={1.5}>1.5×</option></select></label></div><small className="tts-voice-note">{voices.length ? `${voices.length} giọng tiếng Việt khả dụng trên thiết bị` : "Đang dùng giọng tiếng Việt mặc định của thiết bị"}</small></>}</div></div>
+  </section>;
 }
 
 function LikeButton({ post, user, variant, onRequireLogin }: { post: Post; user: User | null; variant: "card" | "article"; onRequireLogin?: () => void }) {

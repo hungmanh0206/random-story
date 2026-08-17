@@ -27,6 +27,8 @@ type AdminPost = {
   published_at: string | null;
   created_at: string;
   author_id?: string;
+  audio_male_url?: string | null;
+  audio_female_url?: string | null;
 };
 
 type PostForm = {
@@ -36,6 +38,8 @@ type PostForm = {
   content: string;
   category: string;
   cover_url: string;
+  audio_male_url: string;
+  audio_female_url: string;
   status: AdminPost["status"];
 };
 
@@ -55,7 +59,7 @@ type Member = {
   createdAt?: { toDate?: () => Date } | string;
 };
 
-const emptyPost: PostForm = { title: "", slug: "", excerpt: "", content: "", category: "Ghi chép", cover_url: "", status: "draft" };
+const emptyPost: PostForm = { title: "", slug: "", excerpt: "", content: "", category: "Ghi chép", cover_url: "", audio_male_url: "", audio_female_url: "", status: "draft" };
 const emptyCategory = { name: "", slug: "", description: "" };
 
 const createSlug = (value: string) => value
@@ -126,7 +130,7 @@ export function AdminDashboard() {
   const openCreate = () => { setEditing(null); setForm(emptyPost); setFormOpen(true); setMessage(""); };
   const openEdit = (post: AdminPost) => {
     setEditing(post);
-    setForm({ title: post.title, slug: post.slug, excerpt: post.excerpt, content: post.content, category: post.category, cover_url: post.cover_url ?? "", status: post.status });
+    setForm({ title: post.title, slug: post.slug, excerpt: post.excerpt, content: post.content, category: post.category, cover_url: post.cover_url ?? "", audio_male_url: post.audio_male_url ?? "", audio_female_url: post.audio_female_url ?? "", status: post.status });
     setFormOpen(true); setMessage("");
   };
 
@@ -165,6 +169,8 @@ export function AdminDashboard() {
       ...form,
       slug: createSlug(form.slug || form.title),
       cover_url: form.cover_url || null,
+      audio_male_url: form.audio_male_url || null,
+      audio_female_url: form.audio_female_url || null,
       author_id: user.uid,
       published_at: form.status === "published" ? editing?.published_at || new Date().toISOString() : null,
       updated_at: new Date().toISOString(),
@@ -277,6 +283,7 @@ export function AdminDashboard() {
         <label>Tóm tắt<textarea required value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} /></label>
         <label>Nội dung<div className="tinymce-wrap"><TinyEditor value={form.content} onChange={(content) => setForm({ ...form, content })} /></div></label>
         <label>URL ảnh bìa<input type="url" value={form.cover_url} onChange={(e) => setForm({ ...form, cover_url: e.target.value })} placeholder="https://images.example.com/anh-bia.jpg" /></label>
+        <fieldset className="audio-fields"><legend>Audio bài viết (không bắt buộc)</legend><p>Dán URL MP3 từ Firebase Storage. Bỏ trống để dùng giọng của trình duyệt.</p><div className="editor-grid"><label>Giọng nữ<input type="url" value={form.audio_female_url} onChange={(e) => setForm({ ...form, audio_female_url: e.target.value })} placeholder="https://.../female.mp3" /></label><label>Giọng nam<input type="url" value={form.audio_male_url} onChange={(e) => setForm({ ...form, audio_male_url: e.target.value })} placeholder="https://.../male.mp3" /></label></div></fieldset>
         <label>Trạng thái<select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as typeof form.status })}><option value="draft">Bản nháp</option><option value="published">Xuất bản</option><option value="archived">Lưu trữ</option></select></label>
         {message && <p className="auth-message">{message}</p>}<button className="primary-btn">{editing ? "Lưu thay đổi" : "Tạo bài viết"}</button>
       </form></section></div>}
