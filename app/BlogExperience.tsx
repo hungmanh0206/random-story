@@ -5,6 +5,7 @@ import type { User } from "firebase/auth";
 import { createUserWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut as firebaseSignOut, updateProfile } from "firebase/auth";
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query as firestoreQuery, serverTimestamp, setDoc, where } from "firebase/firestore";
 import { firebaseAuth, firestore } from "../lib/firebase";
+import { StageIcon } from "./StageIcon";
 
 export type Post = {
   id: string;
@@ -275,18 +276,18 @@ export function BlogExperience() {
         <nav className={menuOpen ? "nav open" : "nav"} aria-label="Điều hướng chính">
           <a href="#stories" onClick={() => setMenuOpen(false)}>Bài viết</a>
           <div className={topicMenuOpen ? "nav-dropdown open" : "nav-dropdown"}>
-            <button className="nav-link nav-dropdown-trigger" aria-haspopup="true" aria-expanded={topicMenuOpen} onClick={() => setTopicMenuOpen((open) => !open)}>Chủ đề <span>⌄</span></button>
+            <button className="nav-link nav-dropdown-trigger" aria-haspopup="true" aria-expanded={topicMenuOpen} onClick={() => setTopicMenuOpen((open) => !open)}>Chủ đề <StageIcon name="chevron-down" /></button>
             <div className="nav-dropdown-menu">
               {categories.map((item) => <button key={item} className={category === item ? "active" : ""} onClick={() => chooseCategory(item)}>{item}</button>)}
             </div>
           </div>
           <a href="#about" onClick={() => setMenuOpen(false)}>Về chúng tôi</a>
-          <label className="mobile-nav-search"><span>⌕</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết trên mobile" /></label>
+          <label className="mobile-nav-search"><StageIcon name="search" /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết trên mobile" /></label>
         </nav>
         <div className="header-actions">
-          <label className="search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết" /></label>
+          <label className="search"><StageIcon name="search" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết" /></label>
           {accountControl}
-          <button className={menuOpen ? "menu-btn open" : "menu-btn"} onClick={() => { setMenuOpen(!menuOpen); setTopicMenuOpen(false); setProfileOpen(false); }} aria-label={menuOpen ? "Đóng menu" : "Mở menu"}>{menuOpen ? "×" : "☰"}</button>
+          <button className={menuOpen ? "menu-btn open" : "menu-btn"} onClick={() => { setMenuOpen(!menuOpen); setTopicMenuOpen(false); setProfileOpen(false); }} aria-label={menuOpen ? "Đóng menu" : "Mở menu"}><StageIcon name={menuOpen ? "close" : "menu"} /></button>
         </div>
       </header>
 
@@ -297,7 +298,7 @@ export function BlogExperience() {
           <span className="eyebrow light">Bài viết nổi bật · {featured.category}</span>
           <h1>{featured.title}</h1>
           <p>{featured.excerpt}</p>
-          <button className="text-link light-link" onClick={() => openPost(featured)}>Đọc câu chuyện <span>↗</span></button>
+          <button className="text-link light-link" onClick={() => openPost(featured)}>Đọc câu chuyện <StageIcon name="arrow-right" /></button>
         </div>
         <p className="hero-note">Lịch sử · Khoa học · Con người · Thế giới</p>
       </section>
@@ -308,20 +309,18 @@ export function BlogExperience() {
           <p>Từ những dấu mốc lịch sử đến các khám phá khoa học và những điều kỳ thú trong cuộc sống — mỗi bài viết là một hành trình mở rộng hiểu biết.</p>
         </div>
         <div className="story-filter-bar">
-          <div id="topics" className="filter-row" role="group" aria-label="Lọc theo chủ đề">
-            {categories.map((item) => <button key={item} className={category === item ? "filter active" : "filter"} onClick={() => setCategory(item)}>{item}</button>)}
-          </div>
-          <label className="mobile-topic-filter"><span><small>Lọc theo chủ đề</small><strong>{category}</strong></span><select value={category} onChange={(event) => chooseCategory(event.target.value)} aria-label="Lọc bài viết theo chủ đề">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select><b>⌄</b></label>
-          <label className="story-sort"><span>⇅</span><select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} aria-label="Sắp xếp bài viết"><option value="latest">Mới nhất</option><option value="oldest">Cũ nhất</option><option value="az">A–Z</option><option value="za">Z–A</option></select><b>⌄</b></label>
+          <span className="filter-bar-label"><StageIcon name="filter" /> Lọc bài viết</span>
+          <label className="mobile-topic-filter"><span><small>Chủ đề</small><strong>{category}</strong></span><select value={category} onChange={(event) => chooseCategory(event.target.value)} aria-label="Lọc bài viết theo chủ đề">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select><StageIcon name="chevron-down" /></label>
+          <label className="story-sort"><StageIcon name="progress" /><select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} aria-label="Sắp xếp bài viết"><option value="latest">Mới nhất</option><option value="oldest">Cũ nhất</option><option value="az">A–Z</option><option value="za">Z–A</option></select><StageIcon name="chevron-down" /></label>
         </div>
         {filtered.length ? <><div className="post-grid">{visiblePosts.map((post, index) => <PostCard key={post.id} post={post} index={(currentPage - 1) * postsPerPage + index} user={user} onRequireLogin={() => setLoginOpen(true)} onOpen={() => openPost(post)} />)}</div>
           {pageCount > 1 && <nav className="pagination" aria-label="Phân trang bài viết">
-            <button onClick={() => changePage(currentPage - 1)} disabled={currentPage === 1}>← Trước</button>
+            <button className="pagination-step pagination-prev" onClick={() => changePage(currentPage - 1)} disabled={currentPage === 1} aria-label="Trang trước"><StageIcon name="arrow-right" /> <span>Trước</span></button>
             <div>{Array.from({ length: pageCount }, (_, index) => index + 1).map((page) => <button key={page} className={currentPage === page ? "active" : ""} aria-current={currentPage === page ? "page" : undefined} onClick={() => changePage(page)}>{page}</button>)}</div>
-            <button onClick={() => changePage(currentPage + 1)} disabled={currentPage === pageCount}>Sau →</button>
+            <button className="pagination-step" onClick={() => changePage(currentPage + 1)} disabled={currentPage === pageCount} aria-label="Trang sau"><span>Sau</span> <StageIcon name="arrow-right" /></button>
           </nav>}
         </> : (
-          <div className="empty-state"><span>⌕</span><h3>Chưa tìm thấy câu chuyện phù hợp</h3><p>Thử một từ khóa hoặc chủ đề khác nhé.</p></div>
+          <div className="empty-state"><StageIcon name="search" /><h3>Chưa tìm thấy câu chuyện phù hợp</h3><p>Thử một từ khóa hoặc chủ đề khác nhé.</p></div>
         )}
       </section>
 
@@ -346,7 +345,7 @@ function AccountButton({ user, profile, onClick }: { user: User | null; profile:
     <button className="account-chip" onClick={onClick}>
       {profile?.avatar_url ? <img src={profile.avatar_url} alt="" /> : <span>{initial}</span>}
       <strong>Xin chào! {name}</strong>
-      <i aria-hidden="true">⌄</i>
+      <StageIcon name="chevron-down" />
     </button>
   );
 }
@@ -374,7 +373,7 @@ function PostCard({ post, index, user, onRequireLogin, onOpen }: { post: Post; i
       <LikeButton post={post} user={user} onRequireLogin={onRequireLogin} variant="card" />
       <div className="post-meta"><span>{post.category}</span><span>{post.date} · {post.read}</span></div>
       <h3><button onClick={onOpen}>{post.title}</button></h3><p>{post.excerpt}</p>
-      <button className="arrow-btn" onClick={onOpen} aria-label="Đọc bài viết">↗</button>
+      <button className="arrow-btn" onClick={onOpen} aria-label="Đọc bài viết"><StageIcon name="arrow-right" /></button>
     </article>
   );
 }
@@ -417,7 +416,7 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
     <main className="article-page">
       <header className="article-header">
         <button className="brand header-brand" onClick={onBack}><picture><source media="(max-width: 620px)" srcSet="/icon.jpg" /><img src="/logo-original-font.png" alt="random story." /></picture></button>
-        <button className="back-btn" onClick={onBack} aria-label="Trở về trang chủ"><span>← Trở về trang chủ</span></button>
+        <button className="back-btn" onClick={onBack} aria-label="Trở về trang chủ"><StageIcon name="arrow-right" /><span>Trở về trang chủ</span></button>
         {accountButton}
       </header>
       <article>
@@ -429,7 +428,7 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
             : post.content.split(/\n\n+/).map((paragraph, index) => paragraph.startsWith("## ") ? <h2 key={index}>{paragraph.slice(3)}</h2> : <p className={index === 0 ? "lead" : ""} key={index}>{paragraph}</p>)}
           {user && isDatabasePost && (
             <>
-              <div className="article-actions"><LikeButton post={post} user={user} variant="article" /><button onClick={() => navigator.clipboard?.writeText(window.location.href)}>↗ Chia sẻ</button></div>
+              <div className="article-actions"><LikeButton post={post} user={user} variant="article" /><button onClick={() => navigator.clipboard?.writeText(window.location.href)}><StageIcon name="arrow-right" /> Chia sẻ</button></div>
               <section className="comments">
                 <form className="comment-form" onSubmit={addComment}><input required maxLength={500} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={`Viết bình luận, ${profile?.full_name || "bạn"}...`} /><button className="primary-btn">Gửi</button></form>
                 <div className="comment-list">{comments.map((item) => <article key={item.id}><strong>{item.profiles?.full_name || "Độc giả"}</strong><time>{new Date(item.created_at).toLocaleDateString("vi-VN")}</time><p>{item.content}</p></article>)}</div>
@@ -524,7 +523,7 @@ function LoginModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <div className="login-modal" role="dialog" aria-modal="true" aria-label={mode === "login" ? "Đăng nhập Random Story" : "Tạo tài khoản Random Story"} onMouseDown={(e) => e.stopPropagation()}>
-        <button className="close-btn" onClick={onClose} aria-label="Đóng">×</button>
+        <button className="close-btn" onClick={onClose} aria-label="Đóng"><StageIcon name="close" /></button>
         <img className="modal-logo" src="/logo-original-font.png" alt="random story." />
         <form onSubmit={submit}>
           {mode === "signup" && <label>Họ và tên<input required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Tên của bạn" /></label>}
@@ -542,9 +541,9 @@ function LoginModal({ onClose }: { onClose: () => void }) {
 }
 
 function Newsletter() {
-  return <section className="newsletter"><span className="eyebrow">Khám phá cùng Random Story</span><h2>Mỗi câu chuyện,<br />mở ra một góc nhìn mới.</h2><p>Lịch sử, khoa học và thế giới quanh ta luôn có những điều đáng để tìm hiểu. Chọn một câu chuyện và bắt đầu hành trình khám phá của bạn.</p><a className="newsletter-cta" href="#stories">Khám phá bài viết <span>↗</span></a></section>;
+  return <section className="newsletter"><span className="eyebrow">Khám phá cùng Random Story</span><h2>Mỗi câu chuyện,<br />mở ra một góc nhìn mới.</h2><p>Lịch sử, khoa học và thế giới quanh ta luôn có những điều đáng để tìm hiểu. Chọn một câu chuyện và bắt đầu hành trình khám phá của bạn.</p><a className="newsletter-cta" href="#stories">Khám phá bài viết <StageIcon name="arrow-right" /></a></section>;
 }
 
 function Footer() {
-  return <footer><a className="brand footer-brand" href="#top"><img src="/logo-original-font.png" alt="random story." /></a><p>Kể chuyện để hiểu quá khứ.<br />Khám phá để nhìn rộng tương lai.</p><div><a href="#stories">Bài viết</a><a href="#topics">Chủ đề</a><a href="#about">Về chúng tôi</a></div><div><a href="https://www.facebook.com/randomstory0206" target="_blank" rel="noreferrer">Facebook · Random Story ↗</a><a href="https://www.facebook.com/randombook0206" target="_blank" rel="noreferrer">Facebook · Random Book ↗</a></div><small>© 2026 Random Story</small></footer>;
+  return <footer><a className="brand footer-brand" href="#top"><img src="/logo-original-font.png" alt="random story." /></a><p>Kể chuyện để hiểu quá khứ.<br />Khám phá để nhìn rộng tương lai.</p><div><a href="#stories">Bài viết</a><a href="#topics">Chủ đề</a><a href="#about">Về chúng tôi</a></div><div><a href="https://www.facebook.com/randomstory0206" target="_blank" rel="noreferrer">Facebook · Random Story <StageIcon name="arrow-right" /></a><a href="https://www.facebook.com/randombook0206" target="_blank" rel="noreferrer">Facebook · Random Book <StageIcon name="arrow-right" /></a></div><small>© 2026 Random Story</small></footer>;
 }
