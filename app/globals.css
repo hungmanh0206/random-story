@@ -642,6 +642,31 @@ footer{border-radius:var(--radius-section) var(--radius-section) 0 0!important}
 .table-card{border-radius:var(--radius-card)!important;overflow:hidden}
 .account-chip,.profile-avatar,.avatar,.card-like{border-radius:999px!important}
 
+/* Compact, left-aligned discussion composer */
+.comments{padding:26px 28px 28px}
+.comments-heading{display:block;margin:0 0 18px;text-align:left}
+.comments-heading h2{margin:0;font-size:24px;line-height:1.25;letter-spacing:-.35px}
+.comments-heading p{margin:6px 0 0;color:var(--color-mid-gray);font-size:12px;line-height:1.5}
+.comment-form{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px}
+.comment-form input{width:100%;height:46px;min-height:46px}
+.comment-form .primary-btn{height:46px;min-height:46px;padding:0 20px}
+
+/* Combobox option highlight must sit inside, not merge with, the menu shell. */
+.story-combobox-menu{padding:8px!important}
+.story-combobox-menu button{
+  min-height:42px;
+  margin:2px 0;
+  padding:9px 12px;
+  border-radius:13px!important;
+}
+.story-combobox-menu button:hover{background:rgba(79,51,89,.07)}
+.story-combobox-menu button.selected{
+  background:rgba(79,51,89,.11);
+  box-shadow:inset 0 0 0 1px rgba(79,51,89,.06);
+}
+.story-combobox-menu button:first-child{margin-top:0}
+.story-combobox-menu button:last-child{margin-bottom:0}
+
 @media(max-width:620px){
   :root{--radius-control:14px;--radius-control-compact:12px;--radius-panel:20px;--radius-card:26px;--radius-section:28px}
   .site-header .nav{border-radius:var(--radius-panel)!important}
@@ -650,4 +675,10 @@ footer{border-radius:var(--radius-section) var(--radius-section) 0 0!important}
   .menu-btn,.account-chip{border-radius:50%!important}
   .admin-data-block tr{border-radius:var(--radius-panel)!important;overflow:hidden}
   footer{border-radius:var(--radius-section) var(--radius-section) 0 0!important}
+  .comments{padding:20px}
+  .comments-heading{margin-bottom:15px}
+  .comments-heading h2{font-size:22px}
+  .comment-form{grid-template-columns:1fr auto;gap:8px}
+  .story-combobox-menu{padding:7px!important}
+  .story-combobox-menu button{border-radius:12px!important}
 }
