@@ -706,4 +706,5 @@ footer{border-radius:var(--radius-section) var(--radius-section) 0 0!important}
   .story-combobox-menu button{border-radius:12px!important}
   .comment-edit{grid-template-columns:1fr auto}.comment-edit button:last-child{grid-column:2}.share-options{right:0;width:200px}
   .comment-replies{margin-left:8px;padding-left:12px}.reply-form{grid-template-columns:1fr auto}.reply-form button:last-child{grid-column:2}
+  .hero{height:calc(82svh - 74px);margin-top:10px!important}
 }
