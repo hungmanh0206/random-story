@@ -34,6 +34,8 @@ type Comment = {
   id: string;
   content: string;
   created_at: string;
+  author_id: string;
+  parent_id: string | null;
   profiles: { full_name: string | null; avatar_url: string | null } | null;
 };
 
@@ -424,6 +426,10 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
 }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [comment, setComment] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingComment, setEditingComment] = useState("");
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [reply, setReply] = useState("");
   const isDatabasePost = !post.id.startsWith("local-");
 
   const loadSocial = async () => {
@@ -431,7 +437,7 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
     const commentSnapshot = await getDocs(firestoreQuery(collection(firestore, "comments"), where("postId", "==", post.id), where("approved", "==", true)));
     const rows = commentSnapshot.docs.map((item) => {
       const data = item.data();
-      return { id: item.id, content: data.content, created_at: data.createdAt?.toDate?.()?.toISOString?.() ?? new Date().toISOString(), profiles: { full_name: data.authorName ?? null, avatar_url: data.authorAvatar ?? null } } as Comment;
+      return { id: item.id, content: data.content, created_at: data.createdAt?.toDate?.()?.toISOString?.() ?? new Date().toISOString(), author_id: data.authorId ?? "", parent_id: data.parentId ?? null, profiles: { full_name: data.authorName ?? null, avatar_url: data.authorAvatar ?? null } } as Comment;
     }).sort((a, b) => a.created_at.localeCompare(b.created_at));
     setComments(rows);
   };
@@ -452,6 +458,36 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
     setComment(""); await loadSocial();
   };
 
+  const saveComment = async (item: Comment) => {
+    if (!user || item.author_id !== user.uid || !editingComment.trim()) return;
+    await setDoc(doc(firestore, "comments", item.id), { content: editingComment.trim(), updatedAt: serverTimestamp() }, { merge: true });
+    setEditingCommentId(null); setEditingComment(""); await loadSocial();
+  };
+
+  const addReply = async (event: FormEvent, item: Comment) => {
+    event.preventDefault();
+    if (!user || !reply.trim()) return;
+    const parentId = item.parent_id || item.id;
+    await addDoc(collection(firestore, "comments"), { postId: post.id, parentId, authorId: user.uid, authorName: profile?.full_name || user.displayName || user.email?.split("@")[0] || "Độc giả", authorAvatar: profile?.avatar_url || user.photoURL || null, content: reply.trim(), approved: true, createdAt: serverTimestamp() });
+    setReplyingTo(null); setReply(""); await loadSocial();
+  };
+
+  const removeComment = async (item: Comment) => {
+    if (!user || (item.author_id !== user.uid && profile?.role !== "admin")) return;
+    if (!window.confirm("Xóa bình luận này?")) return;
+    const childComments = comments.filter((commentItem) => commentItem.parent_id === item.id);
+    await Promise.all([deleteDoc(doc(firestore, "comments", item.id)), ...childComments.map((child) => deleteDoc(doc(firestore, "comments", child.id)))]);
+    await loadSocial();
+  };
+
+  const renderComment = (item: Comment, isReply = false) => <article key={item.id} className={isReply ? "comment-reply" : ""}>
+    <div className="comment-head"><strong>{item.profiles?.full_name || "Độc giả"}</strong><time>{new Date(item.created_at).toLocaleDateString("vi-VN")}</time></div>
+    {editingCommentId === item.id ? <div className="comment-edit"><input autoFocus maxLength={500} value={editingComment} onChange={(event) => setEditingComment(event.target.value)} /><button onClick={() => void saveComment(item)}>Lưu</button><button onClick={() => { setEditingCommentId(null); setEditingComment(""); }}>Hủy</button></div> : <p>{item.content}</p>}
+    {editingCommentId !== item.id && <div className="comment-actions"><button onClick={() => { setReplyingTo(item.id); setReply(""); }}>Trả lời</button>{item.author_id === user?.uid && <button onClick={() => { setEditingCommentId(item.id); setEditingComment(item.content); }}>Sửa</button>}{(item.author_id === user?.uid || profile?.role === "admin") && <button className="danger" onClick={() => void removeComment(item)}>Xóa</button>}</div>}
+    {replyingTo === item.id && <form className="reply-form" onSubmit={(event) => void addReply(event, item)}><input autoFocus required maxLength={500} value={reply} onChange={(event) => setReply(event.target.value)} placeholder={`Trả lời ${item.profiles?.full_name || "Độc giả"}...`} /><button>Gửi</button><button type="button" onClick={() => { setReplyingTo(null); setReply(""); }}>Hủy</button></form>}
+    {!isReply && <div className="comment-replies">{comments.filter((replyItem) => replyItem.parent_id === item.id).map((replyItem) => renderComment(replyItem, true))}</div>}
+  </article>;
+
   return (
     <main className="article-page">
       <header className="article-header">
@@ -468,11 +504,11 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
             : post.content.split(/\n\n+/).map((paragraph, index) => paragraph.startsWith("## ") ? <h2 key={index}>{paragraph.slice(3)}</h2> : <p className={index === 0 ? "lead" : ""} key={index}>{paragraph}</p>)}
           {user && isDatabasePost && (
             <>
-              <div className="article-actions"><LikeButton post={post} user={user} variant="article" /><button onClick={() => navigator.clipboard?.writeText(window.location.href)}><StageIcon name="arrow-right" /> Chia sẻ</button></div>
+              <div className="article-actions"><LikeButton post={post} user={user} variant="article" /><ShareMenu /></div>
               <section className="comments">
                 <div className="comments-heading"><h2>Bình luận</h2><p>Chia sẻ suy nghĩ của bạn về câu chuyện này.</p></div>
                 <form className="comment-form" onSubmit={addComment}><input required maxLength={500} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={`Viết bình luận, ${profile?.full_name || "bạn"}...`} /><button className="primary-btn">Gửi</button></form>
-                <div className="comment-list">{comments.map((item) => <article key={item.id}><strong>{item.profiles?.full_name || "Độc giả"}</strong><time>{new Date(item.created_at).toLocaleDateString("vi-VN")}</time><p>{item.content}</p></article>)}</div>
+                <div className="comment-list">{comments.filter((item) => !item.parent_id).map((item) => renderComment(item))}</div>
               </section>
             </>
           )}
@@ -482,6 +518,36 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
       <Footer />
     </main>
   );
+}
+
+function ShareMenu() {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const close = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
+
+  const copyLink = async () => {
+    await navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+
+  const shareFacebook = () => {
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, "facebook-share", "width=720,height=620,noopener,noreferrer");
+    setOpen(false);
+  };
+
+  return <div className="share-menu" ref={rootRef}>
+    <button className="share-trigger" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}><span>Chia sẻ</span><StageIcon name="chevron-down" /></button>
+    {open && <div className="share-options" role="menu"><button role="menuitem" onClick={() => void copyLink()}>{copied ? "Đã sao chép" : "Sao chép liên kết"}</button><button role="menuitem" onClick={shareFacebook}>Chia sẻ lên Facebook</button></div>}
+  </div>;
 }
 
 function LikeButton({ post, user, variant, onRequireLogin }: { post: Post; user: User | null; variant: "card" | "article"; onRequireLogin?: () => void }) {
