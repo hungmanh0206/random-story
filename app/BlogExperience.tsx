@@ -499,8 +499,7 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
       <header className="article-header">
         <button className="brand header-brand" onClick={onBack}><picture><source media="(max-width: 620px)" srcSet="/icon.jpg" /><img src="/logo-original-font.png" alt="random story." /></picture></button>
         <button className="back-btn" onClick={onBack} aria-label="Trở về trang chủ"><StageIcon name="arrow-right" /><span>Trở về trang chủ</span></button>
-        {accountButton}
-        <ArticleMobileMenu onBack={onBack} />
+        <div className="header-actions article-header-actions">{accountButton}<ArticleMobileMenu onBack={onBack} /></div>
       </header>
       <article>
         <div className="article-intro"><span className="eyebrow">{post.category}</span><h1>{post.title}</h1><p>{post.excerpt}</p><div className="author-row"><div className="avatar">HM</div><div><strong>Hùng Mạnh</strong><span>{post.date} · {post.read}</span></div></div></div>
@@ -509,15 +508,13 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
           {/<[a-z][\s\S]*>/i.test(post.content)
             ? <div className="rich-article-content" dangerouslySetInnerHTML={{ __html: post.content }} />
             : post.content.split(/\n\n+/).map((paragraph, index) => paragraph.startsWith("## ") ? <h2 key={index}>{paragraph.slice(3)}</h2> : <p className={index === 0 ? "lead" : ""} key={index}>{paragraph}</p>)}
+          <div className="article-actions">{user && isDatabasePost ? <LikeButton post={post} user={user} variant="article" /> : <span className="article-listen-label">Tiện ích bài viết</span>}<div className="article-action-tools"><TextToSpeech title={post.title} excerpt={post.excerpt} content={post.content} /><ShareMenu /></div></div>
           {user && isDatabasePost && (
-            <>
-              <div className="article-actions"><LikeButton post={post} user={user} variant="article" /><ShareMenu /></div>
               <section className="comments">
                 <div className="comments-heading"><h2>Bình luận</h2><p>Chia sẻ suy nghĩ của bạn về câu chuyện này.</p></div>
                 <form className="comment-form" onSubmit={addComment}><input required maxLength={500} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={`Viết bình luận, ${profile?.full_name || "bạn"}...`} /><button className="primary-btn">Gửi</button></form>
                 <div className="comment-list">{comments.filter((item) => !item.parent_id).map((item) => renderComment(item))}</div>
               </section>
-            </>
           )}
         </div>
       </article>
@@ -564,6 +561,73 @@ function ShareMenu() {
   return <div className="share-menu" ref={rootRef}>
     <button className="share-trigger" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}><span>Chia sẻ</span><StageIcon name="chevron-down" /></button>
     {open && <div className="share-options" role="menu"><button role="menuitem" onClick={() => void copyLink()}>{copied ? "Đã sao chép" : "Sao chép liên kết"}</button><button role="menuitem" onClick={shareFacebook}>Chia sẻ lên Facebook</button></div>}
+  </div>;
+}
+
+function TextToSpeech({ title, excerpt, content }: { title: string; excerpt: string; content: string }) {
+  const [supported, setSupported] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [rate, setRate] = useState(1);
+  const [voiceGender, setVoiceGender] = useState("female");
+  const [voiceRegion, setVoiceRegion] = useState("north");
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [progress, setProgress] = useState(0);
+  const chunksRef = useRef<string[]>([]);
+  const chunkIndexRef = useRef(0);
+
+  const stop = () => {
+    window.speechSynthesis?.cancel();
+    setSpeaking(false); setPaused(false); setProgress(0); chunkIndexRef.current = 0;
+  };
+
+  useEffect(() => {
+    setSupported("speechSynthesis" in window);
+    const loadVoices = () => setVoices(window.speechSynthesis.getVoices().filter((voice) => voice.lang.toLowerCase().startsWith("vi")));
+    loadVoices(); window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
+    return () => { window.speechSynthesis.removeEventListener("voiceschanged", loadVoices); window.speechSynthesis?.cancel(); };
+  }, []);
+
+  const speakChunk = (index: number, chunks: string[], speed: number) => {
+    if (index >= chunks.length) { setSpeaking(false); setPaused(false); setProgress(100); return; }
+    chunkIndexRef.current = index;
+    const utterance = new SpeechSynthesisUtterance(chunks[index]);
+    utterance.lang = "vi-VN"; utterance.rate = speed;
+    const genderTerms = voiceGender === "male" ? ["namminh", "male", "man", "nam"] : ["hoaimy", "female", "woman", "nữ", "linh"];
+    const regionTerms = voiceRegion === "north" ? ["hanoi", "north", "bắc"] : voiceRegion === "central" ? ["hue", "central", "trung"] : ["saigon", "south", "nam"];
+    const vietnameseVoice = voices.find((voice) => regionTerms.some((term) => voice.name.toLowerCase().includes(term)) && genderTerms.some((term) => voice.name.toLowerCase().includes(term))) || voices.find((voice) => genderTerms.some((term) => voice.name.toLowerCase().includes(term))) || voices[0];
+    if (vietnameseVoice) utterance.voice = vietnameseVoice;
+    utterance.onstart = () => { setSpeaking(true); setPaused(false); setProgress(Math.round(index / chunks.length * 100)); };
+    utterance.onend = () => speakChunk(index + 1, chunks, speed);
+    utterance.onerror = () => { setSpeaking(false); setPaused(false); };
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const play = () => {
+    if (paused) { window.speechSynthesis.resume(); setPaused(false); return; }
+    if (speaking) { window.speechSynthesis.pause(); setPaused(true); return; }
+    const holder = document.createElement("div"); holder.innerHTML = content;
+    const plainText = `${title}. ${excerpt}. ${holder.textContent || content}`.replace(/\s+/g, " ").trim();
+    const chunks = plainText.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.flatMap((sentence) => sentence.trim().match(/.{1,220}(?:\s|$)/g)?.map((part) => part.trim()) || []) || [plainText];
+    chunksRef.current = chunks; chunkIndexRef.current = 0; setProgress(0);
+    window.speechSynthesis.cancel(); speakChunk(0, chunks, rate);
+  };
+
+  const changeRate = (value: number) => {
+    setRate(value);
+    if (speaking || paused) { window.speechSynthesis.cancel(); setSpeaking(false); setPaused(false); setProgress(0); }
+  };
+
+  const changeVoice = (gender: string, region: string) => {
+    setVoiceGender(gender); setVoiceRegion(region);
+    if (speaking || paused) stop();
+  };
+
+  if (!supported) return null;
+  return <div className="tts-wrap">
+    <button className="tts-trigger" aria-expanded={open} onClick={() => { setOpen((value) => !value); if (open) stop(); }}><StageIcon name="book-open" /> Nghe bài viết</button>
+    {open && <div className="tts-player"><div className="tts-player-controls"><button className="tts-play" onClick={play}>{speaking && !paused ? "Tạm dừng" : paused ? "Tiếp tục" : "Phát"}</button><button className="tts-stop" onClick={stop} disabled={!speaking && !paused}>Dừng</button></div><div className="tts-settings"><label>Giọng<select value={voiceGender} onChange={(event) => changeVoice(event.target.value, voiceRegion)}><option value="female">Nữ</option><option value="male">Nam</option></select></label><label>Vùng miền<select value={voiceRegion} onChange={(event) => changeVoice(voiceGender, event.target.value)}><option value="north">Miền Bắc</option><option value="central">Miền Trung</option><option value="south">Miền Nam</option></select></label><label>Tốc độ<select value={rate} onChange={(event) => changeRate(Number(event.target.value))}><option value={0.8}>0.8×</option><option value={1}>1×</option><option value={1.2}>1.2×</option><option value={1.5}>1.5×</option></select></label></div><small className="tts-voice-note">{voices.length ? `${voices.length} giọng tiếng Việt khả dụng` : "Dùng giọng tiếng Việt mặc định của thiết bị"}</small><div className="tts-progress"><i style={{ width: `${progress}%` }} /><span>{progress}%</span></div></div>}
   </div>;
 }
 
