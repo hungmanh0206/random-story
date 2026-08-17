@@ -500,6 +500,7 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
         <button className="brand header-brand" onClick={onBack}><picture><source media="(max-width: 620px)" srcSet="/icon.jpg" /><img src="/logo-original-font.png" alt="random story." /></picture></button>
         <button className="back-btn" onClick={onBack} aria-label="Trở về trang chủ"><StageIcon name="arrow-right" /><span>Trở về trang chủ</span></button>
         {accountButton}
+        <ArticleMobileMenu onBack={onBack} />
       </header>
       <article>
         <div className="article-intro"><span className="eyebrow">{post.category}</span><h1>{post.title}</h1><p>{post.excerpt}</p><div className="author-row"><div className="avatar">HM</div><div><strong>Hùng Mạnh</strong><span>{post.date} · {post.read}</span></div></div></div>
@@ -525,6 +526,15 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
       {commentPendingDelete && <div className="confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deletingComment) setCommentPendingDelete(null); }}><section className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-comment-title"><div className="confirm-icon">!</div><h2 id="delete-comment-title">Xóa bình luận?</h2><p>Bình luận này{comments.some((item) => item.parent_id === commentPendingDelete.id) ? " và các câu trả lời bên dưới" : ""} sẽ bị xóa vĩnh viễn.</p><div className="confirm-actions"><button disabled={deletingComment} onClick={() => setCommentPendingDelete(null)}>Hủy</button><button className="confirm-danger" disabled={deletingComment} onClick={() => void removeComment(commentPendingDelete)}>{deletingComment ? "Đang xóa..." : "Xóa bình luận"}</button></div></section></div>}
     </main>
   );
+}
+
+function ArticleMobileMenu({ onBack }: { onBack: () => void }) {
+  const [open, setOpen] = useState(false);
+  return <div className="article-mobile-menu">
+    {open && <button className="article-menu-dismiss" aria-label="Đóng menu" onClick={() => setOpen(false)} />}
+    <button className={`article-menu-trigger ${open ? "open" : ""}`} aria-label={open ? "Đóng menu" : "Mở menu"} aria-expanded={open} onClick={() => setOpen((value) => !value)}><StageIcon name={open ? "close" : "menu"} /></button>
+    {open && <nav className="article-menu-panel" aria-label="Điều hướng bài viết"><button onClick={onBack}>Trang chủ</button><a href="/#stories">Bài viết</a><a href="/#about">Về chúng tôi</a></nav>}
+  </div>;
 }
 
 function ShareMenu() {
