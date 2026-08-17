@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: "Random Story — Lịch sử, khoa học và những câu chuyện đáng khám phá",
   description: "Khám phá những câu chuyện về lịch sử, khoa học, con người và thế giới quanh ta qua góc nhìn gần gũi, dễ hiểu.",
+  icons: { icon: "/favicon-rounded.svg", shortcut: "/favicon-rounded.svg", apple: "/icon.jpg" },
   openGraph: {
     title: "Random Story — Lịch sử, khoa học và những câu chuyện đáng khám phá",
     description: "Những câu chuyện thú vị về lịch sử, khoa học, con người và thế giới quanh ta.",

@@ -333,3 +333,20 @@ footer>div:last-of-type a{display:flex;align-items:center;gap:7px}footer>div:las
   .article-cover{width:calc(100% - 16px);border-radius:8px}.article-body{width:calc(100% - 32px);padding:0}.login-modal{border-radius:12px}.post-editor,.category-editor{border-radius:12px}
   .admin-shell aside{border-radius:0}.admin-shell aside nav button{justify-content:center;gap:5px;border-radius:7px}.admin-shell aside nav button .stage-icon{width:16px;height:16px}.admin-main{padding:22px 14px}.admin-card,.stat-grid>div,.kpi-card,.analytics-panel{border-radius:10px}.table-card{padding:12px}.admin-data-block tr{border-radius:10px;box-shadow:none}.admin-controls{gap:7px}.admin-select{border-radius:8px}
 }
+
+/* Hybrid glass pass — retain atmosphere, reserve glass for interactive surfaces. */
+body:before{display:block;background:radial-gradient(ellipse 90% 55% at 50% -10%,rgba(79,51,89,.28),transparent 68%),radial-gradient(ellipse 55% 42% at 8% 35%,rgba(115,3,148,.13),transparent 62%),radial-gradient(ellipse 52% 40% at 92% 70%,rgba(35,142,172,.10),transparent 62%),linear-gradient(180deg,#fcf8ff,#f0e6f7 58%,#fcf8ff)}
+body:after{display:block;opacity:.32;background-image:linear-gradient(rgba(79,51,89,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(79,51,89,.07) 1px,transparent 1px);background-size:56px 56px;mask-image:linear-gradient(180deg,transparent,#000 14%,#000 76%,transparent)}
+.site-header,.article-header{background:rgba(254,251,255,.76);border-color:rgba(255,255,255,.74);box-shadow:0 1px 3px rgba(37,22,42,.08);backdrop-filter:blur(28px) saturate(120%)}
+.story-filter-bar{padding:10px 12px;border:1px solid rgba(255,255,255,.72);border-radius:14px;background:rgba(255,255,255,.58);box-shadow:0 10px 30px rgba(37,22,42,.08);backdrop-filter:blur(24px) saturate(115%)}
+.story-filter-bar .mobile-topic-filter,.story-filter-bar .story-sort{background:rgba(255,255,255,.82);border-color:rgba(79,51,89,.15)}
+.story-filter-bar .mobile-topic-filter{display:flex;align-items:center;gap:8px;padding:0 36px 0 12px}.story-filter-bar .mobile-topic-filter>.stage-icon:first-child{position:static;width:17px;height:17px;color:var(--color-aubergine);transform:none}.story-filter-bar .mobile-topic-filter select{position:static;flex:1;width:auto;height:100%;min-width:0;padding:0;border:0;outline:0;opacity:1;appearance:none;background:transparent;color:var(--color-carbon);font-size:12px;font-weight:600;cursor:pointer}.story-filter-bar .mobile-topic-filter>.stage-icon:last-child{position:absolute;right:11px;top:50%;width:17px;height:17px;color:var(--color-aubergine);transform:translateY(-50%);pointer-events:none}
+.nav-dropdown-menu{max-height:min(520px,calc(100dvh - 100px));overflow-y:auto;background:rgba(255,255,255,.94);backdrop-filter:blur(22px) saturate(115%)}
+.profile-menu,.login-modal{background:rgba(255,255,255,.9);backdrop-filter:blur(26px) saturate(115%)}
+.admin-card,.stat-grid>div,.kpi-card,.analytics-panel{background:rgba(255,255,255,.78);backdrop-filter:blur(18px)}
+.hero-note{display:none!important}
+@media(max-width:620px){
+  .story-filter-bar{padding:8px;border-radius:11px}.story-filter-bar .mobile-topic-filter,.story-filter-bar .story-sort{height:46px!important;min-height:46px!important}
+  .nav-dropdown-menu{max-height:280px;overflow-y:auto;background:rgba(255,255,255,.94)!important}
+  .header-brand,.site-header .header-brand img,.article-header .header-brand img{border-radius:12px!important}
+}

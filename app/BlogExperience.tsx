@@ -165,6 +165,14 @@ export function BlogExperience() {
   }, []);
 
   useEffect(() => {
+    const closeTopicMenu = (event: PointerEvent) => {
+      if (!(event.target as Element).closest(".nav-dropdown")) setTopicMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", closeTopicMenu);
+    return () => document.removeEventListener("pointerdown", closeTopicMenu);
+  }, []);
+
+  useEffect(() => {
     const syncPostFromUrl = () => {
       const slug = new URLSearchParams(window.location.search).get("post");
       setActive(slug ? posts.find((post) => post.slug === slug) ?? null : null);
@@ -300,7 +308,6 @@ export function BlogExperience() {
           <p>{featured.excerpt}</p>
           <button className="text-link light-link" onClick={() => openPost(featured)}>Đọc câu chuyện <StageIcon name="arrow-right" /></button>
         </div>
-        <p className="hero-note">Lịch sử · Khoa học · Con người · Thế giới</p>
       </section>
 
       <section id="stories" className="content-section">
@@ -310,7 +317,7 @@ export function BlogExperience() {
         </div>
         <div className="story-filter-bar">
           <span className="filter-bar-label"><StageIcon name="filter" /> Lọc bài viết</span>
-          <label className="mobile-topic-filter"><span><small>Chủ đề</small><strong>{category}</strong></span><select value={category} onChange={(event) => chooseCategory(event.target.value)} aria-label="Lọc bài viết theo chủ đề">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select><StageIcon name="chevron-down" /></label>
+          <label className="mobile-topic-filter"><StageIcon name="story" /><select value={category} onChange={(event) => chooseCategory(event.target.value)} aria-label="Lọc bài viết theo chủ đề">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select><StageIcon name="chevron-down" /></label>
           <label className="story-sort"><StageIcon name="progress" /><select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} aria-label="Sắp xếp bài viết"><option value="latest">Mới nhất</option><option value="oldest">Cũ nhất</option><option value="az">A–Z</option><option value="za">Z–A</option></select><StageIcon name="chevron-down" /></label>
         </div>
         {filtered.length ? <><div className="post-grid">{visiblePosts.map((post, index) => <PostCard key={post.id} post={post} index={(currentPage - 1) * postsPerPage + index} user={user} onRequireLogin={() => setLoginOpen(true)} onOpen={() => openPost(post)} />)}</div>
