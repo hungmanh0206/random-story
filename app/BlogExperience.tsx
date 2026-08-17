@@ -470,6 +470,7 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
             <>
               <div className="article-actions"><LikeButton post={post} user={user} variant="article" /><button onClick={() => navigator.clipboard?.writeText(window.location.href)}><StageIcon name="arrow-right" /> Chia sẻ</button></div>
               <section className="comments">
+                <div className="comments-heading"><span className="eyebrow">Thảo luận</span><h2>Bình luận</h2></div>
                 <form className="comment-form" onSubmit={addComment}><input required maxLength={500} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={`Viết bình luận, ${profile?.full_name || "bạn"}...`} /><button className="primary-btn">Gửi</button></form>
                 <div className="comment-list">{comments.map((item) => <article key={item.id}><strong>{item.profiles?.full_name || "Độc giả"}</strong><time>{new Date(item.created_at).toLocaleDateString("vi-VN")}</time><p>{item.content}</p></article>)}</div>
               </section>
