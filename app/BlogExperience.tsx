@@ -124,8 +124,12 @@ export function BlogExperience() {
         setProfile(null);
         return;
       }
-      const snapshot = await getDoc(doc(firestore, "users", nextUser.uid));
-      setProfile(snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as Profile) : null);
+      try {
+        const snapshot = await getDoc(doc(firestore, "users", nextUser.uid));
+        setProfile(snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as Profile) : null);
+      } catch {
+        setProfile(null);
+      }
     };
 
     const unsubscribe = onAuthStateChanged(firebaseAuth, loadUser);
@@ -141,8 +145,12 @@ export function BlogExperience() {
           rows.sort((a, b) => b.date.localeCompare(a.date));
           setPosts(rows);
         }
-        if (!categorySnapshot.empty) setCategories(["Tất cả", ...categorySnapshot.docs.map((item) => String(item.data().name)).sort()]);
-      });
+        if (!categorySnapshot.empty) {
+          const names = categorySnapshot.docs.map((item) => String(item.data().name).trim()).filter((name) => name && name !== "Tất cả");
+          setCategories(["Tất cả", ...Array.from(new Set(names)).sort((a, b) => a.localeCompare(b, "vi"))]);
+        }
+      })
+      .catch(() => undefined);
     return unsubscribe;
   }, []);
 
@@ -261,23 +269,24 @@ export function BlogExperience() {
   const featured = posts.reduce((mostLiked, post) => post.likes > mostLiked.likes ? post : mostLiked, posts[0]);
   return (
     <main>
+      {menuOpen && <button className="mobile-nav-dismiss" aria-label="Đóng menu nền" onClick={() => { setMenuOpen(false); setTopicMenuOpen(false); }} />}
       <header className="site-header">
         <a className="brand header-brand" href="#top" aria-label="Random Story"><picture><source media="(max-width: 620px)" srcSet="/icon.jpg" /><img src="/logo-original-font.png" alt="random story." /></picture></a>
         <nav className={menuOpen ? "nav open" : "nav"} aria-label="Điều hướng chính">
-          <a href="#stories">Bài viết</a>
+          <a href="#stories" onClick={() => setMenuOpen(false)}>Bài viết</a>
           <div className={topicMenuOpen ? "nav-dropdown open" : "nav-dropdown"}>
             <button className="nav-link nav-dropdown-trigger" aria-haspopup="true" aria-expanded={topicMenuOpen} onClick={() => setTopicMenuOpen((open) => !open)}>Chủ đề <span>⌄</span></button>
             <div className="nav-dropdown-menu">
               {categories.map((item) => <button key={item} className={category === item ? "active" : ""} onClick={() => chooseCategory(item)}>{item}</button>)}
             </div>
           </div>
-          <a href="#about">Về chúng tôi</a>
+          <a href="#about" onClick={() => setMenuOpen(false)}>Về chúng tôi</a>
           <label className="mobile-nav-search"><span>⌕</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết trên mobile" /></label>
         </nav>
         <div className="header-actions">
           <label className="search"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết" /></label>
           {accountControl}
-          <button className={menuOpen ? "menu-btn open" : "menu-btn"} onClick={() => { setMenuOpen(!menuOpen); setTopicMenuOpen(false); }} aria-label={menuOpen ? "Đóng menu" : "Mở menu"}>{menuOpen ? "×" : "☰"}</button>
+          <button className={menuOpen ? "menu-btn open" : "menu-btn"} onClick={() => { setMenuOpen(!menuOpen); setTopicMenuOpen(false); setProfileOpen(false); }} aria-label={menuOpen ? "Đóng menu" : "Mở menu"}>{menuOpen ? "×" : "☰"}</button>
         </div>
       </header>
 
@@ -408,7 +417,7 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
     <main className="article-page">
       <header className="article-header">
         <button className="brand header-brand" onClick={onBack}><picture><source media="(max-width: 620px)" srcSet="/icon.jpg" /><img src="/logo-original-font.png" alt="random story." /></picture></button>
-        <button className="back-btn" onClick={onBack}>← Trở về trang chủ</button>
+        <button className="back-btn" onClick={onBack} aria-label="Trở về trang chủ"><span>← Trở về trang chủ</span></button>
         {accountButton}
       </header>
       <article>
