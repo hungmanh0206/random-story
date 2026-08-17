@@ -350,3 +350,159 @@ body:after{display:block;opacity:.32;background-image:linear-gradient(rgba(79,51
   .nav-dropdown-menu{max-height:280px;overflow-y:auto;background:rgba(255,255,255,.94)!important}
   .header-brand,.site-header .header-brand img,.article-header .header-brand img{border-radius:12px!important}
 }
+
+/* Story discovery controls and cards */
+.story-filter-bar{
+  position:relative;
+  justify-content:flex-end;
+  gap:12px;
+  margin:32px 0 42px;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  backdrop-filter:none;
+}
+.story-combobox{position:relative;width:280px;z-index:12}
+.story-combobox.is-compact{width:190px}
+.story-combobox-trigger{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  width:100%;
+  height:50px;
+  padding:0 15px;
+  border:1px solid rgba(79,51,89,.16);
+  border-radius:16px;
+  background:rgba(255,255,255,.82);
+  color:var(--color-carbon);
+  box-shadow:0 8px 24px rgba(37,22,42,.07);
+  backdrop-filter:blur(18px) saturate(115%);
+  font-size:13px;
+  font-weight:650;
+  text-align:left;
+  cursor:pointer;
+  transition:border-color .2s,box-shadow .2s,background .2s;
+}
+.story-combobox-trigger:hover,.story-combobox.is-open .story-combobox-trigger{border-color:rgba(79,51,89,.36);background:#fff;box-shadow:0 12px 30px rgba(37,22,42,.11)}
+.story-combobox-trigger>span{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.story-combobox-trigger .stage-icon{width:18px;height:18px;color:var(--color-aubergine);flex:none}
+.story-combobox-trigger .stage-icon:last-child{transition:transform .2s}
+.story-combobox.is-open .story-combobox-trigger .stage-icon:last-child{transform:rotate(180deg)}
+.story-combobox-menu{
+  position:absolute;
+  z-index:30;
+  top:calc(100% + 8px);
+  left:0;
+  right:0;
+  max-height:320px;
+  padding:7px;
+  overflow-y:auto;
+  border:1px solid rgba(79,51,89,.13);
+  border-radius:18px;
+  background:rgba(255,255,255,.95);
+  box-shadow:0 20px 48px rgba(37,22,42,.16);
+  backdrop-filter:blur(24px) saturate(120%);
+}
+.story-combobox-menu button{display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:9px 11px;border:0;border-radius:12px;background:transparent;color:var(--color-charcoal);font-size:13px;text-align:left;cursor:pointer}
+.story-combobox-menu button span{flex:1}
+.story-combobox-menu button .stage-icon{width:16px;height:16px;color:var(--color-aubergine)}
+.story-combobox-menu button:hover{background:var(--color-purple-haze);color:var(--color-aubergine)}
+.story-combobox-menu button.selected{background:rgba(79,51,89,.10);color:var(--color-aubergine);font-weight:700}
+
+.post-grid{gap:32px}
+.post-card{
+  position:relative;
+  display:flex;
+  min-width:0;
+  padding:10px;
+  overflow:hidden;
+  border:1px solid rgba(79,51,89,.13);
+  border-radius:30px;
+  background:rgba(255,255,255,.70);
+  box-shadow:0 12px 38px rgba(37,22,42,.09);
+  backdrop-filter:blur(18px) saturate(112%);
+  transition:transform .28s ease,border-color .28s ease,box-shadow .28s ease;
+}
+.post-card:hover{transform:translateY(-5px);border-color:rgba(79,51,89,.25);box-shadow:0 20px 48px rgba(37,22,42,.14)}
+.post-card .card-image{border-radius:22px}
+.post-card-body{display:flex;flex:1;flex-direction:column;padding:4px 10px 10px}
+.post-card .post-meta{margin:16px 0 0}
+.post-card h3{margin:11px 0 8px}
+.post-card p{margin:0 0 22px;color:var(--color-charcoal)}
+.card-read-link{display:inline-flex;align-items:center;align-self:flex-start;gap:8px;min-height:38px;margin-top:auto;padding:0;border:0;background:transparent;color:var(--color-aubergine);font-size:12px;font-weight:750;cursor:pointer}
+.card-read-link .stage-icon{width:17px;height:17px;transition:transform .2s}
+.card-read-link:hover .stage-icon{transform:translateX(4px)}
+.card-like{border-radius:13px}
+
+@media(max-width:620px){
+  .story-filter-bar{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:8px;margin:22px 0 30px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none}
+  .story-combobox,.story-combobox.is-compact{width:100%}
+  .story-combobox-trigger{height:48px;padding-inline:12px;border-radius:15px;font-size:12px}
+  .story-combobox-menu{position:absolute;left:0;right:auto;width:min(310px,calc(100vw - 28px));max-height:280px;border-radius:16px}
+  .story-combobox.is-compact .story-combobox-menu{left:auto;right:0;width:190px}
+  .post-grid{gap:24px}
+  .post-card{padding:9px;border-radius:26px}
+  .post-card .card-image{border-radius:19px}
+  .post-card-body{padding:3px 9px 9px}
+}
+
+/* Mobile header: compact account control and a menu above its dismiss layer. */
+@media(max-width:620px){
+  .site-header{z-index:60}
+  .header-actions{gap:7px;overflow:visible}
+  .account-menu-wrap{flex:0 0 40px;width:40px}
+  .account-chip{
+    display:grid;
+    place-items:center;
+    width:40px;
+    min-width:40px;
+    height:40px;
+    min-height:40px;
+    padding:3px;
+    overflow:hidden;
+    border:1px solid rgba(79,51,89,.18);
+    border-radius:50%;
+    background:rgba(255,255,255,.88);
+    box-shadow:0 7px 20px rgba(37,22,42,.10);
+  }
+  .account-chip>span,.account-chip>img{width:32px;height:32px;border-radius:50%;font-size:12px}
+  .account-chip strong,.account-chip>.stage-icon{display:none!important}
+  .profile-menu{top:calc(100% + 10px);right:0}
+  .menu-btn{
+    z-index:64;
+    display:grid;
+    place-items:center;
+    flex:0 0 40px;
+    width:40px;
+    height:40px;
+    padding:0;
+    border:1px solid rgba(79,51,89,.16);
+    border-radius:14px;
+    background:rgba(255,255,255,.82);
+    color:var(--color-aubergine);
+    box-shadow:0 7px 20px rgba(37,22,42,.08);
+  }
+  .menu-btn.open{background:var(--color-aubergine);color:#fff}
+  .menu-btn .stage-icon{display:block;width:20px;height:20px}
+  .mobile-nav-dismiss{z-index:39;inset:70px 0 0}
+  .site-header .nav{
+    position:fixed;
+    z-index:62;
+    top:78px;
+    left:10px;
+    right:10px;
+    gap:4px;
+    max-height:calc(100dvh - 90px);
+    padding:10px;
+    overflow-y:auto;
+    border:1px solid rgba(79,51,89,.15);
+    border-radius:20px;
+    background:rgba(254,251,255,.96);
+    box-shadow:0 20px 50px rgba(37,22,42,.20);
+    backdrop-filter:blur(26px) saturate(120%);
+  }
+  .site-header .nav.open{display:flex}
+  .site-header .nav>a,.site-header .nav>.nav-dropdown>.nav-dropdown-trigger{border-radius:13px}
+}

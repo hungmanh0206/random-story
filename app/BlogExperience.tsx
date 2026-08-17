@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "firebase/auth";
 import { createUserWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut as firebaseSignOut, updateProfile } from "firebase/auth";
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query as firestoreQuery, serverTimestamp, setDoc, where } from "firebase/firestore";
@@ -316,9 +316,8 @@ export function BlogExperience() {
           <p>Từ những dấu mốc lịch sử đến các khám phá khoa học và những điều kỳ thú trong cuộc sống — mỗi bài viết là một hành trình mở rộng hiểu biết.</p>
         </div>
         <div className="story-filter-bar">
-          <span className="filter-bar-label"><StageIcon name="filter" /> Lọc bài viết</span>
-          <label className="mobile-topic-filter"><StageIcon name="story" /><select value={category} onChange={(event) => chooseCategory(event.target.value)} aria-label="Lọc bài viết theo chủ đề">{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select><StageIcon name="chevron-down" /></label>
-          <label className="story-sort"><StageIcon name="progress" /><select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} aria-label="Sắp xếp bài viết"><option value="latest">Mới nhất</option><option value="oldest">Cũ nhất</option><option value="az">A–Z</option><option value="za">Z–A</option></select><StageIcon name="chevron-down" /></label>
+          <StoryCombobox icon="story" value={category} options={categories.map((item) => ({ value: item, label: item }))} onChange={chooseCategory} ariaLabel="Lọc bài viết theo chủ đề" />
+          <StoryCombobox icon="progress" value={sortOrder} options={[{ value: "latest", label: "Mới nhất" }, { value: "oldest", label: "Cũ nhất" }, { value: "az", label: "A–Z" }, { value: "za", label: "Z–A" }]} onChange={setSortOrder} ariaLabel="Sắp xếp bài viết" compact />
         </div>
         {filtered.length ? <><div className="post-grid">{visiblePosts.map((post, index) => <PostCard key={post.id} post={post} index={(currentPage - 1) * postsPerPage + index} user={user} onRequireLogin={() => setLoginOpen(true)} onOpen={() => openPost(post)} />)}</div>
           {pageCount > 1 && <nav className="pagination" aria-label="Phân trang bài viết">
@@ -341,6 +340,38 @@ export function BlogExperience() {
       <Footer />
       {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
     </main>
+  );
+}
+
+function StoryCombobox({ icon, value, options, onChange, ariaLabel, compact = false }: {
+  icon: "story" | "progress";
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  ariaLabel: string;
+  compact?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const selected = options.find((option) => option.value === value) ?? options[0];
+
+  useEffect(() => {
+    const close = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
+
+  return (
+    <div className={`story-combobox ${compact ? "is-compact" : ""} ${open ? "is-open" : ""}`} ref={rootRef}>
+      <button type="button" className="story-combobox-trigger" aria-label={ariaLabel} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((current) => !current)}>
+        <StageIcon name={icon} /><span>{selected?.label}</span><StageIcon name="chevron-down" />
+      </button>
+      {open && <div className="story-combobox-menu" role="listbox" aria-label={ariaLabel}>
+        {options.map((option) => <button type="button" key={option.value} role="option" aria-selected={option.value === value} className={option.value === value ? "selected" : ""} onClick={() => { onChange(option.value); setOpen(false); }}><span>{option.label}</span>{option.value === value && <StageIcon name="check" />}</button>)}
+      </div>}
+    </div>
   );
 }
 
@@ -378,9 +409,11 @@ function PostCard({ post, index, user, onRequireLogin, onOpen }: { post: Post; i
     <article className={`post-card card-${index % 3}`}>
       <button className="card-image" onClick={onOpen} aria-label={`Đọc ${post.title}`}><img src={post.image} alt="" /></button>
       <LikeButton post={post} user={user} onRequireLogin={onRequireLogin} variant="card" />
-      <div className="post-meta"><span>{post.category}</span><span>{post.date} · {post.read}</span></div>
-      <h3><button onClick={onOpen}>{post.title}</button></h3><p>{post.excerpt}</p>
-      <button className="arrow-btn" onClick={onOpen} aria-label="Đọc bài viết"><StageIcon name="arrow-right" /></button>
+      <div className="post-card-body">
+        <div className="post-meta"><span>{post.category}</span><span>{post.date} · {post.read}</span></div>
+        <h3><button onClick={onOpen}>{post.title}</button></h3><p>{post.excerpt}</p>
+        <button className="card-read-link" onClick={onOpen}>Đọc bài viết <StageIcon name="arrow-right" /></button>
+      </div>
     </article>
   );
 }
