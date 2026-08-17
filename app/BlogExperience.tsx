@@ -249,7 +249,7 @@ export function BlogExperience() {
   };
 
   const accountControl = (
-    <div className="account-menu-wrap">
+    <div className={`account-menu-wrap ${user ? "authenticated" : "guest"}`}>
       <AccountButton
         user={user}
         profile={profile}
@@ -430,6 +430,8 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
   const [editingComment, setEditingComment] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [reply, setReply] = useState("");
+  const [commentPendingDelete, setCommentPendingDelete] = useState<Comment | null>(null);
+  const [deletingComment, setDeletingComment] = useState(false);
   const isDatabasePost = !post.id.startsWith("local-");
 
   const loadSocial = async () => {
@@ -474,16 +476,20 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
 
   const removeComment = async (item: Comment) => {
     if (!user || (item.author_id !== user.uid && profile?.role !== "admin")) return;
-    if (!window.confirm("Xóa bình luận này?")) return;
-    const childComments = comments.filter((commentItem) => commentItem.parent_id === item.id);
-    await Promise.all([deleteDoc(doc(firestore, "comments", item.id)), ...childComments.map((child) => deleteDoc(doc(firestore, "comments", child.id)))]);
-    await loadSocial();
+    setDeletingComment(true);
+    try {
+      const childComments = comments.filter((commentItem) => commentItem.parent_id === item.id);
+      await Promise.all([deleteDoc(doc(firestore, "comments", item.id)), ...childComments.map((child) => deleteDoc(doc(firestore, "comments", child.id)))]);
+      setCommentPendingDelete(null); await loadSocial();
+    } finally {
+      setDeletingComment(false);
+    }
   };
 
   const renderComment = (item: Comment, isReply = false) => <article key={item.id} className={isReply ? "comment-reply" : ""}>
     <div className="comment-head"><strong>{item.profiles?.full_name || "Độc giả"}</strong><time>{new Date(item.created_at).toLocaleDateString("vi-VN")}</time></div>
     {editingCommentId === item.id ? <div className="comment-edit"><input autoFocus maxLength={500} value={editingComment} onChange={(event) => setEditingComment(event.target.value)} /><button onClick={() => void saveComment(item)}>Lưu</button><button onClick={() => { setEditingCommentId(null); setEditingComment(""); }}>Hủy</button></div> : <p>{item.content}</p>}
-    {editingCommentId !== item.id && <div className="comment-actions"><button onClick={() => { setReplyingTo(item.id); setReply(""); }}>Trả lời</button>{item.author_id === user?.uid && <button onClick={() => { setEditingCommentId(item.id); setEditingComment(item.content); }}>Sửa</button>}{(item.author_id === user?.uid || profile?.role === "admin") && <button className="danger" onClick={() => void removeComment(item)}>Xóa</button>}</div>}
+    {editingCommentId !== item.id && <div className="comment-actions"><button onClick={() => { setReplyingTo(item.id); setReply(""); }}>Trả lời</button>{item.author_id === user?.uid && <button onClick={() => { setEditingCommentId(item.id); setEditingComment(item.content); }}>Sửa</button>}{(item.author_id === user?.uid || profile?.role === "admin") && <button className="danger" onClick={() => setCommentPendingDelete(item)}>Xóa</button>}</div>}
     {replyingTo === item.id && <form className="reply-form" onSubmit={(event) => void addReply(event, item)}><input autoFocus required maxLength={500} value={reply} onChange={(event) => setReply(event.target.value)} placeholder={`Trả lời ${item.profiles?.full_name || "Độc giả"}...`} /><button>Gửi</button><button type="button" onClick={() => { setReplyingTo(null); setReply(""); }}>Hủy</button></form>}
     {!isReply && <div className="comment-replies">{comments.filter((replyItem) => replyItem.parent_id === item.id).map((replyItem) => renderComment(replyItem, true))}</div>}
   </article>;
@@ -516,6 +522,7 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
       </article>
       <section className="related"><div className="section-heading"><div><span className="eyebrow">Đọc tiếp</span><h2>Có thể bạn sẽ thích</h2></div></div><div className="post-grid">{posts.filter((item) => item.id !== post.id).slice(0, 3).map((item, index) => <PostCard key={item.id} post={item} index={index} user={user} onRequireLogin={() => undefined} onOpen={() => onRelated(item)} />)}</div></section>
       <Footer />
+      {commentPendingDelete && <div className="confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deletingComment) setCommentPendingDelete(null); }}><section className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-comment-title"><div className="confirm-icon">!</div><h2 id="delete-comment-title">Xóa bình luận?</h2><p>Bình luận này{comments.some((item) => item.parent_id === commentPendingDelete.id) ? " và các câu trả lời bên dưới" : ""} sẽ bị xóa vĩnh viễn.</p><div className="confirm-actions"><button disabled={deletingComment} onClick={() => setCommentPendingDelete(null)}>Hủy</button><button className="confirm-danger" disabled={deletingComment} onClick={() => void removeComment(commentPendingDelete)}>{deletingComment ? "Đang xóa..." : "Xóa bình luận"}</button></div></section></div>}
     </main>
   );
 }
