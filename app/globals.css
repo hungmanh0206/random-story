@@ -1,5 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-@import url('/design-system/system.css');
+@import "./aubergine-system.css";
 @import "tailwindcss";
 
 :root{--ink:#211a25;--cream:#f4eff5;--paper:#fcfafc;--sage:#69466f;--lime:#e1c9e4;--line:#ded4df;--muted:#746b77;--purple:#503357;--purple-dark:#35213b;--purple-soft:#efe5f0}
