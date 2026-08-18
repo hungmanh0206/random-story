@@ -110,7 +110,7 @@ export function BlogExperience() {
   const [categories, setCategories] = useState(fallbackCategories);
   const [query, setQuery] = useState("");
   const [sortOrder, setSortOrder] = useState("latest");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(6);
   const [posts, setPosts] = useState<Post[]>(fallbackPosts);
   const [active, setActive] = useState<Post | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -249,18 +249,13 @@ export function BlogExperience() {
     });
   }, [category, posts, query, sortOrder]);
 
-  const postsPerPage = 6;
-  const pageCount = Math.max(1, Math.ceil(filtered.length / postsPerPage));
-  const visiblePosts = filtered.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
+  const visiblePosts = filtered.slice(0, visibleCount);
+  useEffect(() => setVisibleCount(6), [category, query, sortOrder]);
 
-  useEffect(() => setCurrentPage(1), [category, query, sortOrder]);
-  useEffect(() => {
-    if (currentPage > pageCount) setCurrentPage(pageCount);
-  }, [currentPage, pageCount]);
-
-  const changePage = (page: number) => {
-    setCurrentPage(page);
-    document.getElementById("stories")?.scrollIntoView({ behavior: "smooth" });
+  const openRandomPost = () => {
+    const pool = category === "Tất cả" ? posts : posts.filter((post) => post.category === category);
+    if (!pool.length) return;
+    openPost(pool[Math.floor(Math.random() * pool.length)]);
   };
 
   const accountControl = (
@@ -298,14 +293,16 @@ export function BlogExperience() {
       <header className="site-header">
         <a className="brand header-brand" href="#top" aria-label="Random Story"><picture><source media="(max-width: 620px)" srcSet="/icon.jpg" /><img src="/logo-original-font.png" alt="random story." /></picture></a>
         <nav className={menuOpen ? "nav open" : "nav"} aria-label="Điều hướng chính">
-          <a href="#stories" onClick={() => setMenuOpen(false)}>Bài viết</a>
+          <a href="#stories" onClick={() => setMenuOpen(false)}>Khám phá</a>
           <div className={topicMenuOpen ? "nav-dropdown open" : "nav-dropdown"}>
             <button className="nav-link nav-dropdown-trigger" aria-haspopup="true" aria-expanded={topicMenuOpen} onClick={() => setTopicMenuOpen((open) => !open)}>Chủ đề <StageIcon name="chevron-down" /></button>
             <div className="nav-dropdown-menu">
               {categories.map((item) => <button key={item} className={category === item ? "active" : ""} onClick={() => chooseCategory(item)}>{item}</button>)}
             </div>
           </div>
-          <a href="#about" onClick={() => setMenuOpen(false)}>Về chúng tôi</a>
+          <a href="#stories" onClick={() => setMenuOpen(false)}>Bài mới</a>
+          <a href="#about" onClick={() => setMenuOpen(false)}>Về Random Story</a>
+          <button className="nav-random" onClick={() => { setMenuOpen(false); openRandomPost(); }}><StageIcon name="progress" /> Chuyện ngẫu nhiên</button>
           <label className="mobile-nav-search"><StageIcon name="search" /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm bài viết..." aria-label="Tìm bài viết trên mobile" /></label>
         </nav>
         <div className="header-actions">
@@ -322,7 +319,7 @@ export function BlogExperience() {
           <span className="eyebrow light">Bài viết nổi bật · {featured.category}</span>
           <h1>{featured.title}</h1>
           <p>{featured.excerpt}</p>
-          <button className="text-link light-link" onClick={() => openPost(featured)}>Đọc câu chuyện <StageIcon name="arrow-right" /></button>
+          <button className="hero-cta" onClick={() => openPost(featured)}>Đọc bài nổi bật <StageIcon name="arrow-right" /></button>
         </div>
       </section>
 
@@ -331,16 +328,12 @@ export function BlogExperience() {
           <div><span className="eyebrow">Mới trên Random Story</span><h2>Những câu chuyện gần đây</h2></div>
           <p>Từ những dấu mốc lịch sử đến các khám phá khoa học và những điều kỳ thú trong cuộc sống — mỗi bài viết là một hành trình mở rộng hiểu biết.</p>
         </div>
-        <div className="story-filter-bar">
-          <StoryCombobox icon="story" value={category} options={categories.map((item) => ({ value: item, label: item }))} onChange={chooseCategory} ariaLabel="Lọc bài viết theo chủ đề" />
+        <div className="story-discovery">
+          <div className="topic-chips" role="group" aria-label="Lọc theo chủ đề">{categories.map((item) => <button key={item} className={category === item ? "active" : ""} aria-pressed={category === item} onClick={() => chooseCategory(item)}>{item}</button>)}</div>
           <StoryCombobox icon="progress" value={sortOrder} options={[{ value: "latest", label: "Mới nhất" }, { value: "oldest", label: "Cũ nhất" }, { value: "az", label: "A–Z" }, { value: "za", label: "Z–A" }]} onChange={setSortOrder} ariaLabel="Sắp xếp bài viết" compact />
         </div>
-        {filtered.length ? <><div className="post-grid">{visiblePosts.map((post, index) => <PostCard key={post.id} post={post} index={(currentPage - 1) * postsPerPage + index} user={user} onRequireLogin={() => setLoginOpen(true)} onOpen={() => openPost(post)} />)}</div>
-          {pageCount > 1 && <nav className="pagination" aria-label="Phân trang bài viết">
-            <button className="pagination-step pagination-prev" onClick={() => changePage(currentPage - 1)} disabled={currentPage === 1} aria-label="Trang trước"><StageIcon name="arrow-right" /> <span>Trước</span></button>
-            <div>{Array.from({ length: pageCount }, (_, index) => index + 1).map((page) => <button key={page} className={currentPage === page ? "active" : ""} aria-current={currentPage === page ? "page" : undefined} onClick={() => changePage(page)}>{page}</button>)}</div>
-            <button className="pagination-step" onClick={() => changePage(currentPage + 1)} disabled={currentPage === pageCount} aria-label="Trang sau"><span>Sau</span> <StageIcon name="arrow-right" /></button>
-          </nav>}
+        {filtered.length ? <><div className="post-grid editorial-grid">{visiblePosts.map((post, index) => <PostCard key={post.id} post={post} index={index} featured={index === 0} user={user} onRequireLogin={() => setLoginOpen(true)} onOpen={() => openPost(post)} />)}</div>
+          {visibleCount < filtered.length && <div className="stories-more"><button onClick={() => setVisibleCount((count) => count + 6)}>Xem thêm câu chuyện <StageIcon name="chevron-down" /></button></div>}
         </> : (
           <div className="empty-state"><StageIcon name="search" /><h3>Chưa tìm thấy câu chuyện phù hợp</h3><p>Thử một từ khóa hoặc chủ đề khác nhé.</p></div>
         )}
@@ -352,7 +345,7 @@ export function BlogExperience() {
         <div className="about-copy"><p>Random Story kể lại lịch sử, giải thích khoa học và khám phá những chủ đề gần gũi bằng ngôn ngữ dễ hiểu. Chúng tôi tin rằng kiến thức trở nên đáng nhớ nhất khi được kể thành một câu chuyện hay.</p></div>
       </section>
 
-      <Newsletter />
+      <Newsletter onRandom={openRandomPost} />
       <Footer />
       {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
     </main>
@@ -420,15 +413,16 @@ function ProfileMenu({ user, profile, onClose }: { user: User; profile: Profile 
   );
 }
 
-function PostCard({ post, index, user, onRequireLogin, onOpen }: { post: Post; index: number; user: User | null; onRequireLogin: () => void; onOpen: () => void }) {
+function PostCard({ post, index, featured = false, user, onRequireLogin, onOpen }: { post: Post; index: number; featured?: boolean; user: User | null; onRequireLogin: () => void; onOpen: () => void }) {
   return (
-    <article className={`post-card card-${index % 3}`}>
-      <button className="card-image" onClick={onOpen} aria-label={`Đọc ${post.title}`}><img src={post.image} alt="" /></button>
+    <article className={`post-card card-${index % 3} ${featured ? "featured-story-card" : ""}`} role="link" tabIndex={0} aria-label={`Đọc ${post.title}`} onClick={onOpen} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onOpen(); } }}>
+      <div className="card-image"><img src={post.image} alt={`Ảnh bìa ${post.title}`} /></div>
       <LikeButton post={post} user={user} onRequireLogin={onRequireLogin} variant="card" />
       <div className="post-card-body">
-        <div className="post-meta"><span>{post.category}</span><span>{post.date} · {post.read}</span></div>
-        <h3><button onClick={onOpen}>{post.title}</button></h3><p>{post.excerpt}</p>
-        <button className="card-read-link" onClick={onOpen}>Đọc bài viết <StageIcon name="arrow-right" /></button>
+        {featured && <span className="editor-pick">Nổi bật</span>}
+        <div className="post-meta"><span>{post.category}</span><span>{post.read}</span></div>
+        <h3>{post.title}</h3><p>{post.excerpt}</p>
+        <span className="card-read-link">Đọc bài <StageIcon name="arrow-right" /></span>
       </div>
     </article>
   );
@@ -610,7 +604,8 @@ function LikeButton({ post, user, variant, onRequireLogin }: { post: Post; user:
     return () => window.removeEventListener("randomstory:like", sync);
   }, [post.id]);
 
-  const toggle = async () => {
+  const toggle = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
     if (!user) {
       onRequireLogin?.();
       return;
@@ -683,8 +678,8 @@ function LoginModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Newsletter() {
-  return <section className="newsletter"><span className="eyebrow">Khám phá cùng Random Story</span><h2>Mỗi câu chuyện,<br />mở ra một góc nhìn mới.</h2><p>Lịch sử, khoa học và thế giới quanh ta luôn có những điều đáng để tìm hiểu. Chọn một câu chuyện và bắt đầu hành trình khám phá của bạn.</p><a className="newsletter-cta" href="#stories">Khám phá bài viết <StageIcon name="arrow-right" /></a></section>;
+function Newsletter({ onRandom }: { onRandom: () => void }) {
+  return <section className="newsletter random-cta-section"><span className="eyebrow">Khám phá cùng Random Story</span><h2>Không biết nên bắt đầu từ đâu?</h2><p>Để Random Story chọn cho bạn một câu chuyện về lịch sử, khoa học hoặc thế giới quanh ta.</p><button className="newsletter-cta" onClick={onRandom}><StageIcon name="progress" /> Kể tôi một câu chuyện <StageIcon name="arrow-right" /></button></section>;
 }
 
 function Footer() {
