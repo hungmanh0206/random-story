@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { User } from "firebase/auth";
 import { createUserWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut as firebaseSignOut, updateProfile } from "firebase/auth";
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query as firestoreQuery, serverTimestamp, setDoc, where } from "firebase/firestore";
@@ -330,6 +331,9 @@ export function BlogExperience() {
         </div>
         <div className="story-discovery">
           <div className="topic-chips" role="group" aria-label="Lọc theo chủ đề">{categories.map((item) => <button key={item} className={category === item ? "active" : ""} aria-pressed={category === item} onClick={() => chooseCategory(item)}>{item}</button>)}</div>
+          <div className="mobile-topic-combobox">
+            <StoryCombobox icon="story" value={category} options={categories.map((item) => ({ value: item, label: item }))} onChange={chooseCategory} ariaLabel="Lọc bài viết theo chủ đề" />
+          </div>
           <StoryCombobox icon="progress" value={sortOrder} options={[{ value: "latest", label: "Mới nhất" }, { value: "oldest", label: "Cũ nhất" }, { value: "az", label: "A–Z" }, { value: "za", label: "Z–A" }]} onChange={setSortOrder} ariaLabel="Sắp xếp bài viết" compact />
         </div>
         {filtered.length ? <><div className="post-grid editorial-grid">{visiblePosts.map((post, index) => <PostCard key={post.id} post={post} index={index} featured={index === 0} user={user} onRequireLogin={() => setLoginOpen(true)} onOpen={() => openPost(post)} />)}</div>
@@ -536,17 +540,21 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
 function ArticleMobileMenu({ onBack }: { onBack: () => void }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
   useEffect(() => {
     const close = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      if (!rootRef.current?.contains(event.target as Node) && !panelRef.current?.contains(event.target as Node)) setOpen(false);
     };
     document.addEventListener("pointerdown", close);
     return () => document.removeEventListener("pointerdown", close);
   }, []);
+  const overlay = open && typeof document !== "undefined" ? createPortal(<>
+    <button className="article-menu-dismiss" aria-label="Đóng menu" onClick={() => setOpen(false)} />
+    <nav className="article-menu-panel" ref={panelRef} aria-label="Điều hướng bài viết"><button onClick={() => { setOpen(false); onBack(); }}>Trang chủ</button><a href="/#stories" onClick={() => setOpen(false)}>Bài viết</a><a href="/#about" onClick={() => setOpen(false)}>Về chúng tôi</a></nav>
+  </>, document.body) : null;
   return <div className="article-mobile-menu" ref={rootRef}>
-    {open && <button className="article-menu-dismiss" aria-label="Đóng menu" onClick={() => setOpen(false)} />}
     <button className={`article-menu-trigger ${open ? "open" : ""}`} aria-label={open ? "Đóng menu" : "Mở menu"} aria-expanded={open} onClick={() => setOpen((value) => !value)}><StageIcon name={open ? "close" : "menu"} /></button>
-    {open && <nav className="article-menu-panel" aria-label="Điều hướng bài viết"><button onClick={() => { setOpen(false); onBack(); }}>Trang chủ</button><a href="/#stories" onClick={() => setOpen(false)}>Bài viết</a><a href="/#about" onClick={() => setOpen(false)}>Về chúng tôi</a></nav>}
+    {overlay}
   </div>;
 }
 
