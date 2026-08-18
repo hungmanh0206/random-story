@@ -6,6 +6,7 @@ import { Bar, Line } from "react-chartjs-2";
 import { BarElement, CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Tooltip } from "chart.js";
 import { firestore } from "../../lib/firebase";
 import { StageIcon } from "../StageIcon";
+import { Combobox } from "../Combobox";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend, Filler);
 
@@ -93,7 +94,7 @@ export function AnalyticsDashboard({ posts, members }: { posts: DashboardPost[];
   const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } } } as const;
 
   return <div className="analytics-dashboard">
-    <div className="analytics-toolbar"><p>Dữ liệu được lưu đệm 5 phút để Dashboard tải nhanh hơn.</p><label className="admin-select"><select value={range} onChange={(event) => setRange(event.target.value as typeof range)}><option value="day">Hôm nay</option><option value="week">7 ngày</option><option value="month">30 ngày</option></select><StageIcon name="chevron-down" /></label></div>
+    <div className="analytics-toolbar"><p>Dữ liệu được lưu đệm 5 phút để Dashboard tải nhanh hơn.</p><Combobox value={range} onChange={(value) => setRange(value as typeof range)} ariaLabel="Khoảng thời gian thống kê" options={[{ value: "day", label: "Hôm nay" }, { value: "week", label: "7 ngày" }, { value: "month", label: "30 ngày" }]} /></div>
     <div className="kpi-grid"><Kpi label="Tổng lượt xem" value={rangedViews.length} note={range === "day" ? "Trong hôm nay" : range === "week" ? "Trong 7 ngày" : "Trong 30 ngày"} icon="chart" /><Kpi label="Bài viết mới" value={publishedToday} note="Xuất bản hôm nay" icon="file-text" /><Kpi label="Bình luận mới" value={pendingComments} note="Đang chờ kiểm duyệt" icon="message" /><Kpi label="Thành viên online" value={online} note="Hoạt động trong 5 phút" icon="users" /></div>
     <div className="analytics-chart-grid"><section className="analytics-panel analytics-wide"><PanelTitle title="Lượng truy cập" subtitle={range === "day" ? "Theo từng giờ" : "Theo từng ngày"} /><div className="chart-canvas">{loading ? <p>Đang tải dữ liệu…</p> : <Line options={chartOptions} data={{ labels: chart.labels, datasets: [{ data: chart.values, borderColor: "#6d4774", backgroundColor: "rgba(109,71,116,.13)", fill: true, tension: .35, pointRadius: 3 }] }} />}</div></section><section className="analytics-panel"><PanelTitle title="Lượt xem theo chủ đề" subtitle="So sánh chuyên mục" /><div className="chart-canvas">{loading ? <p>Đang tải dữ liệu…</p> : <Bar options={chartOptions} data={{ labels: categories.map(([name]) => name), datasets: [{ data: categories.map(([, count]) => count), backgroundColor: ["#503357", "#735078", "#96709a", "#b798ba", "#d2bdd4"] }] }} />}</div></section></div>
     <div className="analytics-list-grid"><Ranking title="Bài viết xem nhiều" rows={topPosts.map((item) => [item.title, `${item.count} lượt xem`])} /><Ranking title="Chuyên mục Hot" rows={categories.map(([name, count]) => [name, `${rangedViews.length ? Math.round(count / rangedViews.length * 100) : 0}%`]).slice(0, 10)} /><Ranking title="Năng suất thành viên" rows={productivity.map((item) => [item.name, `${item.count} bài`])} /></div>

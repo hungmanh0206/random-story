@@ -119,6 +119,7 @@ export function BlogExperience() {
   const [topicMenuOpen, setTopicMenuOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const loadUser = async (nextUser: User | null) => {
@@ -155,6 +156,20 @@ export function BlogExperience() {
       })
       .catch(() => undefined);
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const closeFloatingMenus = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!accountMenuRef.current?.contains(target)) setProfileOpen(false);
+      const element = event.target as Element;
+      if (!element.closest(".site-header .nav") && !element.closest(".site-header .menu-btn")) {
+        setMenuOpen(false);
+        setTopicMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", closeFloatingMenus);
+    return () => document.removeEventListener("pointerdown", closeFloatingMenus);
   }, []);
 
   useEffect(() => {
@@ -249,13 +264,12 @@ export function BlogExperience() {
   };
 
   const accountControl = (
-    <div className={`account-menu-wrap ${user ? "authenticated" : "guest"}`}>
+    <div ref={accountMenuRef} className={`account-menu-wrap ${user ? "authenticated" : "guest"}`}>
       <AccountButton
         user={user}
         profile={profile}
         onClick={() => user ? setProfileOpen((open) => !open) : setLoginOpen(true)}
       />
-      {profileOpen && <button className="profile-dismiss" onClick={() => setProfileOpen(false)} aria-label="Đóng menu hồ sơ" />}
       {profileOpen && user && <ProfileMenu user={user} profile={profile} onClose={() => setProfileOpen(false)} />}
     </div>
   );
@@ -527,10 +541,18 @@ function ArticleView({ post, posts, user, profile, accountButton, onBack, onRela
 
 function ArticleMobileMenu({ onBack }: { onBack: () => void }) {
   const [open, setOpen] = useState(false);
-  return <div className="article-mobile-menu">
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const close = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
+  return <div className="article-mobile-menu" ref={rootRef}>
     {open && <button className="article-menu-dismiss" aria-label="Đóng menu" onClick={() => setOpen(false)} />}
     <button className={`article-menu-trigger ${open ? "open" : ""}`} aria-label={open ? "Đóng menu" : "Mở menu"} aria-expanded={open} onClick={() => setOpen((value) => !value)}><StageIcon name={open ? "close" : "menu"} /></button>
-    {open && <nav className="article-menu-panel" aria-label="Điều hướng bài viết"><button onClick={onBack}>Trang chủ</button><a href="/#stories">Bài viết</a><a href="/#about">Về chúng tôi</a></nav>}
+    {open && <nav className="article-menu-panel" aria-label="Điều hướng bài viết"><button onClick={() => { setOpen(false); onBack(); }}>Trang chủ</button><a href="/#stories" onClick={() => setOpen(false)}>Bài viết</a><a href="/#about" onClick={() => setOpen(false)}>Về chúng tôi</a></nav>}
   </div>;
 }
 
@@ -653,7 +675,7 @@ function LoginModal({ onClose }: { onClose: () => void }) {
           {message && <p className="auth-message" role="status">{message}</p>}
           <button className="primary-btn" type="submit" disabled={loading}>{loading ? "Đang xử lý..." : "Tiếp tục"}</button>
         </form>
-        <div className="modal-divider"><span>hoặc</span></div>
+        <div className="modal-divider" aria-hidden="true"><span>hoặc</span></div>
         <button className="google-btn" onClick={loginWithGoogle} disabled={loading}><span className="google-mark">G</span><span>{loading ? "Đang chuyển hướng..." : "Tiếp tục với Google"}</span></button>
         <small>{mode === "login" ? "Chưa có tài khoản?" : "Đã có tài khoản?"} <button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setMessage(""); }}>{mode === "login" ? "Đăng ký miễn phí" : "Đăng nhập"}</button></small>
       </div>
